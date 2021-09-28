@@ -1,0 +1,19 @@
+{
+    "name": "Detekonai.Networking.NetworkBus",
+    "rootNamespace": "",
+    "references": [
+        "GUID:08cdb4b83fab6eb4b8c615543648efaf",
+        "GUID:2faec8fb0be03604293ae09d14b4b779",
+        "GUID:929fd52aca1a3944a92c90473ca53b83",
+        "GUID:6ab6151008f2e1a4590b494119bd9999"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

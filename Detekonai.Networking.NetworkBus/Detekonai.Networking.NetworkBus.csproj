@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+    <RepositoryUrl>https://github.com/aeai/detekonai-networkbus.git</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/aeai/detekonai-networkbus</PackageProjectUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Authors>Aeai</Authors>
+    <Version>0.0.1</Version>
+    <Company>Detekonai</Company>
+    <Configurations>Debug;Release;MasterDebug</Configurations>
+  </PropertyGroup>
+
+  <ItemGroup Condition=" '$(Configuration)' != 'MasterDebug' ">
+    <PackageReference Include="Detekonai.Core.MessageBus" Version="0.0.1" />
+    <PackageReference Include="Detekonai.Networking" Version="0.0.1" />
+  </ItemGroup>
+  <ItemGroup Condition=" '$(Configuration)' == 'MasterDebug' ">
+    <ProjectReference Include="..\..\detekonai-messagebus\Detekonai.Core.MessageBus\Detekonai.Core.MessageBus.csproj" />
+    <ProjectReference Include="..\..\detekonai-networking\Detekonai.Networking\Detekonai.Networking.csproj" />
+  </ItemGroup>
+</Project>

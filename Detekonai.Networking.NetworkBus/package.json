@@ -1,0 +1,22 @@
+{
+  "name": "com.detekonai.networking.networkbus",
+  "version": "0.0.1",
+  "displayName": "Detekonai Network Bus",
+  "description": "NetworkBus for Client Server communication",
+  "unity": "2019.1",
+  "unityRelease": "0b5",
+  "dependencies":
+  {
+	"com.detekonai.networking":"0.0.1",
+	"com.detekonai.core.messagebus":"0.0.1"
+  },
+ "keywords": [
+    "MessageBus",
+	"NetworkBus",
+	"Detekonai"
+  ],
+  "author": {
+    "name": "Aeai",
+    "email": "aeai@detekonai.com"
+  }
+}
