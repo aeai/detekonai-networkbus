@@ -16,7 +16,8 @@ namespace Detekonai.Networking
 		private Dictionary<Type, IHandlerToken> tokens = new Dictionary<Type, IHandlerToken>();
 		private Dictionary<Type, INetworkSerializer> serializers = new Dictionary<Type, INetworkSerializer>();
 		private Dictionary<uint, INetworkSerializer> serializersByHash = new Dictionary<uint, INetworkSerializer>();
-		
+		private readonly Dictionary<Type, Func<BaseMessage, BaseMessage>> responseDelegates = new Dictionary<Type, Func<BaseMessage, BaseMessage>>();
+
 		private ICommChannel channel;
 
 		private HashSet<BaseMessage> processedMessages = new HashSet<BaseMessage>();
@@ -54,6 +55,57 @@ namespace Detekonai.Networking
 			RegisterMessages(factory);
 		}
 
+        private struct MessageAwaiter : IUniversalAwaiter<BaseMessage>
+        {
+            private readonly NetworkBus owner;
+            private readonly IUniversalAwaiter<ICommResponse> other;
+
+			public bool IsCompleted => other.IsCompleted;
+
+            public bool IsInitialized => other.IsInitialized;
+
+			private BaseMessage result;
+
+			public MessageAwaiter(NetworkBus owner, IUniversalAwaiter<ICommResponse> other)
+            {
+                this.owner = owner;
+                this.other = other;
+				result = null;
+            }
+
+			public void Cancel()
+            {
+				other.Cancel();
+            }
+
+            public BaseMessage GetResult()
+            {
+				if (result == null)
+				{
+					using ICommResponse res = other.GetResult();
+					if (res.Status == AwaitResponseStatus.Finished)
+					{
+						result = owner.Deserialize(res.Blob);
+					}
+				}
+
+				return result;
+            }
+
+            public void OnCompleted(Action continuation)
+            {
+				other.OnCompleted(continuation);
+            }
+        }
+
+        public UniversalAwaitable<BaseMessage> SendRPC(BaseMessage msg)
+        {
+			BinaryBlob blob = Serialize(msg);
+			UniversalAwaitable<ICommResponse> res = channel.SendRPC(blob);
+			return new UniversalAwaitable<BaseMessage>(new MessageAwaiter(this, res.GetAwaiter()));
+        }
+
+
 		private void Connect()
 		{
 			if(channel == null)
@@ -62,22 +114,63 @@ namespace Detekonai.Networking
 			}
 
 			channel.OnBlobReceived += Channel_BlobReceived;
+            channel.RequestHandler = Channel_OnRequestReceived;
 			Logger?.Invoke(this, $"{Name} NetworkBus connected to channel: {channel.Name}");
 		}
 
+
+        private BinaryBlob Channel_OnRequestReceived(ICommChannel channel, BinaryBlob request)
+        {
+			var msg = Deserialize(request);
+
+			if (msg != null)
+			{
+				if(responseDelegates.TryGetValue(msg.GetType(), out Func<BaseMessage,BaseMessage> callback))
+				{
+					return Serialize(callback(msg));
+				}
+				else
+                {
+					return null;
+                }
+			}
+
+			return null;
+		}
+
+		public void SetRequestHandler<T>(Func<T, BaseMessage> handler) where T : BaseMessage
+		{
+			responseDelegates[typeof(T)] = (BaseMessage x) => handler(x as T);
+		}
+
+
 		private void Channel_BlobReceived(ICommChannel channel, BinaryBlob e)
 		{
-			uint hash = e.ReadUInt();
-			if(serializersByHash.TryGetValue(hash, out INetworkSerializer ser))
+			var msg = Deserialize(e);
+
+			if(msg != null)
 			{
-				BaseMessage msg = ser.Deserialize(e);
 				processedMessages.Add(msg);
-				if(tokens.TryGetValue(ser.SerializedType, out IHandlerToken token))
+				if(tokens.TryGetValue(msg.GetType(), out IHandlerToken token))
 				{
 					Logger?.Invoke(this, $"{Name} Dispatching message {msg.GetType()} to memory bus");
 					token.Trigger(msg);
 				}
 			}
+		}
+
+		private BaseMessage Deserialize(BinaryBlob blob)
+		{
+			uint hash = blob.ReadUInt();
+			if (serializersByHash.TryGetValue(hash, out INetworkSerializer ser))
+			{
+				
+				return ser.Deserialize(blob);
+			}
+			else
+            {
+				return null;
+            }
 		}
 
 		private void RegisterMessages(INetworkSerializerFactory factory)
@@ -108,13 +201,23 @@ namespace Detekonai.Networking
 			if(!processedMessages.Remove(msg) && Active)
 			{
 				Logger?.Invoke(this, $"{Name} Dispatching message {msg.GetType()} to network");
-				if(serializers.TryGetValue(msg.GetType(), out INetworkSerializer ser))
+				BinaryBlob blob = Serialize(msg);
+				if(blob != null)
 				{
-					BinaryBlob blob = channel.CreateMessage();
-					ser.Serialize(blob, msg);
 					channel.Send(blob);
 				}
 			}
+		}
+
+		private BinaryBlob Serialize(BaseMessage msg)
+        {
+			if (serializers.TryGetValue(msg.GetType(), out INetworkSerializer ser))
+			{
+				BinaryBlob blob = channel.CreateMessage();
+				ser.Serialize(blob, msg);
+				return blob;
+			}
+			return null;
 		}
 
 		private static bool IsOmittable(Assembly assembly)
