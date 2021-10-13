@@ -113,8 +113,8 @@ namespace Detekonai.Networking
 				return;
 			}
 
-			channel.OnBlobReceived += Channel_BlobReceived;
-            channel.RequestHandler = Channel_OnRequestReceived;
+			channel.Tactics.OnBlobReceived += Channel_BlobReceived;
+            channel.Tactics.RequestHandler = Channel_OnRequestReceived;
 			Logger?.Invoke(this, $"{Name} NetworkBus connected to channel: {channel.Name}");
 		}
 
@@ -236,7 +236,7 @@ namespace Detekonai.Networking
 		{
 			if(channel != null)
             {
-				channel.OnBlobReceived -= Channel_BlobReceived;
+				channel.Tactics.OnBlobReceived -= Channel_BlobReceived;
 			}
 		}
 	}

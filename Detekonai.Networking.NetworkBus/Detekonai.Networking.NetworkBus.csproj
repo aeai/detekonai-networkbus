@@ -7,14 +7,15 @@
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Authors>Aeai</Authors>
-    <Version>0.0.1</Version>
+    <Version>0.0.2</Version>
     <Company>Detekonai</Company>
     <Configurations>Debug;Release;MasterDebug</Configurations>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <ItemGroup Condition=" '$(Configuration)' != 'MasterDebug' ">
     <PackageReference Include="Detekonai.Core.MessageBus" Version="0.0.1" />
-    <PackageReference Include="Detekonai.Networking" Version="0.0.1" />
+    <PackageReference Include="Detekonai.Networking" Version="0.0.3" />
   </ItemGroup>
   <ItemGroup Condition=" '$(Configuration)' == 'MasterDebug' ">
     <ProjectReference Include="..\..\detekonai-messagebus\Detekonai.Core.MessageBus\Detekonai.Core.MessageBus.csproj" />
