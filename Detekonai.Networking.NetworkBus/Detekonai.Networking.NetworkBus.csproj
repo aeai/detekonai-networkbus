@@ -7,10 +7,11 @@
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Authors>Aeai</Authors>
-    <Version>0.0.2</Version>
+    <Version>0.0.3</Version>
     <Company>Detekonai</Company>
     <Configurations>Debug;Release;MasterDebug</Configurations>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Copyright>Copyright (c) 2021 Erik Takakura-Zajac</Copyright>
   </PropertyGroup>
 
   <ItemGroup Condition=" '$(Configuration)' != 'MasterDebug' ">

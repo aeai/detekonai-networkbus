@@ -5,11 +5,12 @@ using System;
 
 namespace Detekonai.Networking
 {
-	public interface INetworkBus : ILogCapable, IDisposable
+	public interface INetworkBus: IDisposable
 	{
 		string Name { get; }
 		ICommChannel Channel { get; set; }
 		bool Active { get; }
+		ILogConnector LogConnector { get; set; }
 		UniversalAwaitable<BaseMessage> SendRPC(BaseMessage msg);
 	}
 }

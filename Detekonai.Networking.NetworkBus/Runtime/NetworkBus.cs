@@ -1,4 +1,5 @@
 ﻿using Detekonai.Core;
+using Detekonai.Core.Common;
 using Detekonai.Networking.Runtime.AsyncEvent;
 using System;
 using System.Collections.Generic;
@@ -6,7 +7,7 @@ using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using static Detekonai.Core.Common.ILogCapable;
+using static Detekonai.Core.Common.ILogConnector;
 
 namespace Detekonai.Networking
 {
@@ -46,7 +47,7 @@ namespace Detekonai.Networking
 			}
 		}
 
-        public event LogHandler Logger;
+		public ILogConnector LogConnector { get; set; } = null;
 
 		public NetworkBus(string name, IMessageBus bus, INetworkSerializerFactory factory)
 		{
@@ -115,7 +116,7 @@ namespace Detekonai.Networking
 
 			channel.Tactics.OnBlobReceived += Channel_BlobReceived;
             channel.Tactics.RequestHandler = Channel_OnRequestReceived;
-			Logger?.Invoke(this, $"{Name} NetworkBus connected to channel: {channel.Name}");
+			LogConnector?.Log(this, $"{Name} NetworkBus connected to channel: {channel.Name}");
 		}
 
 
@@ -153,7 +154,7 @@ namespace Detekonai.Networking
 				processedMessages.Add(msg);
 				if(tokens.TryGetValue(msg.GetType(), out IHandlerToken token))
 				{
-					Logger?.Invoke(this, $"{Name} Dispatching message {msg.GetType()} to memory bus");
+					LogConnector?.Log(this, $"{Name} Dispatching message {msg.GetType()} to memory bus");
 					token.Trigger(msg);
 				}
 			}
@@ -178,7 +179,7 @@ namespace Detekonai.Networking
 			var types = AppDomain.CurrentDomain.GetAssemblies().Where(x => !IsOmittable(x)).SelectMany(s => s.GetTypes()).Where(p => p.IsSubclassOf(typeof(BaseMessage)) && p.GetCustomAttribute<NetworkEventAttribute>() != null);
 			foreach(Type t in types)
 			{
-				Logger?.Invoke(this, $"Message {t} is registered to NetworkBus {Name}.");
+				LogConnector?.Log(this, $"Message {t} is registered to NetworkBus {Name}.");
 				INetworkSerializer ser = factory.Build(t);
 				serializers[t] = ser;
 				serializersByHash[ser.MessageId] = ser;
@@ -200,7 +201,7 @@ namespace Detekonai.Networking
 		{
 			if(!processedMessages.Remove(msg) && Active)
 			{
-				Logger?.Invoke(this, $"{Name} Dispatching message {msg.GetType()} to network");
+				LogConnector?.Log(this, $"{Name} Dispatching message {msg.GetType()} to network");
 				BinaryBlob blob = Serialize(msg);
 				if(blob != null)
 				{
