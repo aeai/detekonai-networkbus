@@ -1,5 +1,6 @@
 ﻿using Detekonai.Core;
 using Detekonai.Core.Common;
+using Detekonai.Networking.Runtime;
 using Detekonai.Networking.Runtime.AsyncEvent;
 using System;
 using System.Collections.Generic;
@@ -17,7 +18,7 @@ namespace Detekonai.Networking
 		private Dictionary<Type, IHandlerToken> tokens = new Dictionary<Type, IHandlerToken>();
 		private Dictionary<Type, INetworkSerializer> serializers = new Dictionary<Type, INetworkSerializer>();
 		private Dictionary<uint, INetworkSerializer> serializersByHash = new Dictionary<uint, INetworkSerializer>();
-		private readonly Dictionary<Type, Func<BaseMessage, BaseMessage>> responseDelegates = new Dictionary<Type, Func<BaseMessage, BaseMessage>>();
+		private readonly Dictionary<Type, Action<BaseMessage, MessageRequestTicket>> responseDelegates = new Dictionary<Type, Action<BaseMessage, MessageRequestTicket>>();
 
 		private ICommChannel channel;
 
@@ -55,6 +56,23 @@ namespace Detekonai.Networking
 			this.bus = bus;
 			RegisterMessages(factory);
 		}
+
+        public class MessageRequestTicket
+        {
+            private readonly NetworkBus bus;
+            private readonly IRequestTicket originalTicket;
+
+            public MessageRequestTicket(NetworkBus bus, IRequestTicket originalTicket)
+            {
+                this.bus = bus;
+                this.originalTicket = originalTicket;
+            }
+
+            public void Fulfill(BaseMessage msg)
+            {
+				originalTicket.Fulfill(bus.Serialize(msg));
+            }
+        }
 
         private struct MessageAwaiter : IUniversalAwaiter<BaseMessage>
         {
@@ -120,28 +138,28 @@ namespace Detekonai.Networking
 		}
 
 
-        private BinaryBlob Channel_OnRequestReceived(ICommChannel channel, BinaryBlob request)
+        private void Channel_OnRequestReceived(ICommChannel channel, BinaryBlob request, IRequestTicket ticket)
         {
 			var msg = Deserialize(request);
 
 			if (msg != null)
 			{
-				if(responseDelegates.TryGetValue(msg.GetType(), out Func<BaseMessage,BaseMessage> callback))
+				if(responseDelegates.TryGetValue(msg.GetType(), out Action<BaseMessage, MessageRequestTicket> callback))
 				{
-					return Serialize(callback(msg));
+					callback(msg, new MessageRequestTicket(this,ticket));
 				}
 				else
                 {
-					return null;
+					return;
                 }
 			}
 
-			return null;
+			return;
 		}
 
-		public void SetRequestHandler<T>(Func<T, BaseMessage> handler) where T : BaseMessage
+		public void SetRequestHandler<T>(Action<T, MessageRequestTicket> handler) where T : BaseMessage
 		{
-			responseDelegates[typeof(T)] = (BaseMessage x) => handler(x as T);
+			responseDelegates[typeof(T)] = (BaseMessage x, MessageRequestTicket y) => handler(x as T, y);
 		}
 
 
