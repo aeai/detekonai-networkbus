@@ -19,6 +19,8 @@ namespace Detekonai.Networking.Serializer
 
 		public Type SerializedType { get; private set; }
 
+        public int RequiredSize { get; private set; }
+
 		public DefaultSerializer(Type type, ITypeConverterRepository typeConverterRepo)
 		{
 			typeRepo = typeConverterRepo;
@@ -32,7 +34,7 @@ namespace Detekonai.Networking.Serializer
 			var props = t.GetProperties().Where(p => p.IsDefined(typeof(NetworkSerializableAttribute))).OrderBy(x => x.GetCustomAttribute<NetworkSerializableAttribute>().Name);
 			byte[] data = new byte[512];
 			NetworkEventAttribute nab = t.GetCustomAttribute<NetworkEventAttribute>();
-
+			RequiredSize = nab.SizeRequirement;
 			string fn = nab.Name != null ? nab.Name : t.Name;
 			uint len = (uint)System.Text.Encoding.UTF8.GetBytes(fn, 0, fn.Length, data, 0);
 			hash = MurmurHash3.Hash(data, len, 19850922);

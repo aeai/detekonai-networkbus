@@ -33,7 +33,7 @@ namespace Detekonai.Networking.Serializer
 			setter.Invoke((TT)ob, r);
 		}
 
-		public void Serialize(object ob, BinaryBlob blob)
+        public void Serialize(object ob, BinaryBlob blob)
 		{
 			var r = getter.Invoke((TT)ob);
 			writer.Invoke(blob, r);

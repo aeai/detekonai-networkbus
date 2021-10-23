@@ -11,5 +11,6 @@ namespace Detekonai.Networking
 		BaseMessage Deserialize(BinaryBlob blob);
 		uint MessageId { get; }
 		Type SerializedType { get; }
+		int RequiredSize { get; }
 	}
 }

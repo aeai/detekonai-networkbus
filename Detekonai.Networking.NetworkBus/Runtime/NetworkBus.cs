@@ -232,7 +232,7 @@ namespace Detekonai.Networking
         {
 			if (serializers.TryGetValue(msg.GetType(), out INetworkSerializer ser))
 			{
-				BinaryBlob blob = channel.CreateMessage();
+				BinaryBlob blob = channel.CreateMessageWithSize(ser.RequiredSize);
 				ser.Serialize(blob, msg);
 				return blob;
 			}
