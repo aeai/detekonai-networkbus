@@ -23,7 +23,7 @@ namespace Detekonai.Networking.Serializer
         public void Deserialize(object owner, BinaryBlob blob)
         {
             ushort count = blob.ReadUShort();
-            T list = new();
+            T list = new T();
             for (int i = 0; i < count; i++)
             {
                 object ob = serializer.Deserialize(blob);
