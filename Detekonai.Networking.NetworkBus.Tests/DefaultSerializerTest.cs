@@ -1,4 +1,5 @@
 ﻿using Detekonai.Core;
+using NSubstitute;
 using NUnit.Framework;
 using System;
 using System.Collections.Concurrent;
@@ -11,41 +12,60 @@ namespace Detekonai.Networking.Serializer
 {
 	public class DefaultSerializerTest
 	{
-		[NetworkEvent]
+		[NetworkSerializable]
 		private class NetworkTestMessage : BaseMessage
 		{
-			[NetworkSerializable("String")]
+			[NetworkSerializableProperty("String")]
 			public string StringProp { get; set; }
-			[NetworkSerializable("Int")]
+			
+			[NetworkSerializableProperty("Int")]
 			public int IntProp { get; set; }
 			
-			[NetworkSerializable("List")]
+			[NetworkSerializableProperty("Stuff")]
+			public DataThing Stuff { get; set; }
+
+			[NetworkSerializableProperty("List")]
 			public List<string> StringList { get; set; } = new List<string>();
+
+		}
+
+		[NetworkSerializable]
+		private class DataThing 
+		{
+			[NetworkSerializableProperty("Fruit")]
+			public string Fruit { get; set; }
+			[NetworkSerializableProperty("Int")]
+			public int Number { get; set; }
 		}
 
 		// A Test behaves as an ordinary method
 		[Test]
 		public void DefaultSerializerTestSimplePasses()
 		{
-			// Use the Assert class to test conditions
-			DefaultSerializer serializer = new DefaultSerializer(typeof(NetworkTestMessage), new TypeConverterRepository());
+
+			INetworkSerializerFactory factory = new DefaultSerializerFactory();
+
+			DefaultSerializer serializer = new DefaultSerializer(typeof(NetworkTestMessage), new TypeConverterRepository(), factory);
 			NetworkTestMessage msg = new NetworkTestMessage();
 			msg.StringProp = "alma";
 			msg.IntProp = 1234;
 			msg.StringList.Add("barack");
 			msg.StringList.Add("korte");
+			msg.Stuff = new DataThing() { Fruit = "alma", Number = 12 };
+
 			BinaryBlobPool pool = new BinaryBlobPool(10, 64);
 			BinaryBlob blob = pool.GetBlob();
 			serializer.Serialize(blob, msg);
 
 			blob.JumpIndexToBegin();
-			uint hash = blob.ReadUInt();
 			NetworkTestMessage msg2 = (NetworkTestMessage)serializer.Deserialize(blob);
 
 			Assert.That(msg2, Is.Not.Null);
 			Assert.That(msg2.IntProp, Is.EqualTo(1234));
 			Assert.That(msg2.StringProp, Is.EqualTo("alma"));
 			Assert.That(msg2.StringList.Count, Is.EqualTo(2));
+			Assert.That(msg2.Stuff.Fruit, Is.EqualTo("alma"));
+			Assert.That(msg2.Stuff.Number, Is.EqualTo(12));
 		}
 	}
 }

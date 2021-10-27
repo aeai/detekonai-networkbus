@@ -184,7 +184,7 @@ namespace Detekonai.Networking
 			if (serializersByHash.TryGetValue(hash, out INetworkSerializer ser))
 			{
 				
-				return ser.Deserialize(blob);
+				return (BaseMessage)ser.Deserialize(blob);
 			}
 			else
             {
@@ -194,14 +194,21 @@ namespace Detekonai.Networking
 
 		private void RegisterMessages(INetworkSerializerFactory factory)
 		{
-			var types = AppDomain.CurrentDomain.GetAssemblies().Where(x => !IsOmittable(x)).SelectMany(s => s.GetTypes()).Where(p => p.IsSubclassOf(typeof(BaseMessage)) && p.GetCustomAttribute<NetworkEventAttribute>() != null);
+			var types = AppDomain.CurrentDomain.GetAssemblies().Where(x => !IsOmittable(x)).SelectMany(s => s.GetTypes()).Where(p => p.GetCustomAttribute<NetworkSerializableAttribute>() != null);
 			foreach(Type t in types)
 			{
-				LogConnector?.Log(this, $"Message {t} is registered to NetworkBus {Name}.");
+				if (t.IsSubclassOf(typeof(BaseMessage)))
+				{
+					LogConnector?.Log(this, $"Message {t} is registered to NetworkBus {Name}.");
+					tokens[t] = bus.Subscribe(t, OnLocalMessage);
+				}
+				else
+                {
+					LogConnector?.Log(this, $"Type {t} is registered to NetworkBus {Name} for serialization.");
+                }
 				INetworkSerializer ser = factory.Build(t);
 				serializers[t] = ser;
-				serializersByHash[ser.MessageId] = ser;
-				tokens[t] = bus.Subscribe(t, OnLocalMessage);
+                serializersByHash[ser.MessageId] = ser;
 			}
 		}
 
@@ -233,6 +240,7 @@ namespace Detekonai.Networking
 			if (serializers.TryGetValue(msg.GetType(), out INetworkSerializer ser))
 			{
 				BinaryBlob blob = channel.CreateMessageWithSize(ser.RequiredSize);
+				blob.AddUInt(ser.MessageId);
 				ser.Serialize(blob, msg);
 				return blob;
 			}

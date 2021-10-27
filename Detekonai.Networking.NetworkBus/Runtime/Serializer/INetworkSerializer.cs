@@ -7,8 +7,8 @@ namespace Detekonai.Networking
 {
 	public interface INetworkSerializer
 	{
-		void Serialize(BinaryBlob blob, BaseMessage ob);
-		BaseMessage Deserialize(BinaryBlob blob);
+		void Serialize(BinaryBlob blob, object ob);
+		object Deserialize(BinaryBlob blob);
 		uint MessageId { get; }
 		Type SerializedType { get; }
 		int RequiredSize { get; }

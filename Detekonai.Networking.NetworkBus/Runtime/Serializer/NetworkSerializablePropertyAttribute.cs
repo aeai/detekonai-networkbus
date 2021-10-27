@@ -8,11 +8,11 @@ using System.Threading.Tasks;
 namespace Detekonai.Networking
 { 
 	[AttributeUsage(AttributeTargets.Property, AllowMultiple = false, Inherited = true)]
-	public class NetworkSerializableAttribute : Attribute
+	public class NetworkSerializablePropertyAttribute : Attribute
 	{
         public string Name { get; }
 
-		public NetworkSerializableAttribute([CallerMemberName] string name = null)
+		public NetworkSerializablePropertyAttribute([CallerMemberName] string name = null)
         {
             Name = name;
         }
