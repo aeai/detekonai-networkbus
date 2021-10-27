@@ -51,22 +51,55 @@ namespace Detekonai.Networking.Serializer
 				var getterDelegate = Delegate.CreateDelegate(getterType, null, getter);
 				var setterDelegate = Delegate.CreateDelegate(setterType, null, setter);
 
-				NetworkSerializableAttribute gnab = getter.ReturnType.GetCustomAttribute<NetworkSerializableAttribute>();
-				if (gnab == null)
+				Type colType = GetCollectionNetworkSerializableType(getter.ReturnType);
+				if (colType != null)
 				{
-					var ser = typeof(PropertySerializer<,>).MakeGenericType(t, getter.ReturnType);
-					if (typeRepo.TryGetConverter(getter.ReturnType, out STypeConverter conv))
-					{
-						serializers.Add((IPropertySerializer)Activator.CreateInstance(ser, new object[] { getterDelegate, setterDelegate, conv.writer, conv.reader }));
-					}
+					var ser = typeof(EnumerablePropertySerializer<,,>).MakeGenericType(t, getter.ReturnType, colType);
+					INetworkSerializer pser = serFactory.Build(colType);
+					serializers.Add((IPropertySerializer)Activator.CreateInstance(ser, new object[] { getterDelegate, setterDelegate, pser }));
 				}
 				else
                 {
-					var ser = typeof(NetworkEventPropertySerializer<,>).MakeGenericType(t, getter.ReturnType);
-					INetworkSerializer pser = serFactory.Build(getter.ReturnType);
-					serializers.Add((IPropertySerializer)Activator.CreateInstance(ser, new object[] { getterDelegate, setterDelegate, pser }));
-                }
+					IPropertySerializer ser = FindSerializer(t, getter.ReturnType, getterDelegate, setterDelegate, serFactory);
+					if (ser != null)
+					{ 
+						serializers.Add(ser);
+                    }
+				}
 			}
+		}
+
+		private static Type GetCollectionNetworkSerializableType(Type type)
+		{
+			if (type.IsAssignableTo(typeof(ICollection)))
+			{
+				Type[] tp = type.GenericTypeArguments;
+				if (tp.Length == 1 && tp[0].GetCustomAttribute<NetworkSerializableAttribute>() != null)
+				{
+					return tp[0];
+				}
+			}
+			return null;
+		}
+
+		private IPropertySerializer FindSerializer(Type ownerType, Type type, Delegate getterDelegate, Delegate setterDelegate, INetworkSerializerFactory serFactory) 
+		{
+			NetworkSerializableAttribute gnab = type.GetCustomAttribute<NetworkSerializableAttribute>();
+			if (gnab == null)
+			{
+				var ser = typeof(PropertySerializer<,>).MakeGenericType(ownerType, type);
+				if (typeRepo.TryGetConverter(type, out STypeConverter conv))
+				{
+					return (IPropertySerializer)Activator.CreateInstance(ser, new object[] { getterDelegate, setterDelegate, conv.writer, conv.reader });
+				}
+			}
+			else
+			{
+				var ser = typeof(NetworkEventPropertySerializer<,>).MakeGenericType(ownerType, type);
+				INetworkSerializer pser = serFactory.Build(type);
+				return (IPropertySerializer)Activator.CreateInstance(ser, new object[] { getterDelegate, setterDelegate, pser });
+			}
+			return null;
 		}
 
 		public object Deserialize(BinaryBlob blob)

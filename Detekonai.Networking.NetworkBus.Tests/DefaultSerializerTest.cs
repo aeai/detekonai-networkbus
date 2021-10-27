@@ -24,6 +24,9 @@ namespace Detekonai.Networking.Serializer
 			[NetworkSerializableProperty("Stuff")]
 			public DataThing Stuff { get; set; }
 
+			[NetworkSerializableProperty("StuffList")]
+			public List<DataThing> StuffList { get; set; }
+
 			[NetworkSerializableProperty("List")]
 			public List<string> StringList { get; set; } = new List<string>();
 
@@ -52,8 +55,10 @@ namespace Detekonai.Networking.Serializer
 			msg.StringList.Add("barack");
 			msg.StringList.Add("korte");
 			msg.Stuff = new DataThing() { Fruit = "alma", Number = 12 };
-
-			BinaryBlobPool pool = new BinaryBlobPool(10, 64);
+			msg.StuffList = new List<DataThing>();
+			msg.StuffList.Add(new DataThing() { Fruit = "list1", Number = 111 });
+			msg.StuffList.Add(new DataThing() { Fruit = "list2", Number = 222 });
+			BinaryBlobPool pool = new BinaryBlobPool(10, 128);
 			BinaryBlob blob = pool.GetBlob();
 			serializer.Serialize(blob, msg);
 
@@ -66,6 +71,7 @@ namespace Detekonai.Networking.Serializer
 			Assert.That(msg2.StringList.Count, Is.EqualTo(2));
 			Assert.That(msg2.Stuff.Fruit, Is.EqualTo("alma"));
 			Assert.That(msg2.Stuff.Number, Is.EqualTo(12));
+			Assert.That(msg2.StuffList.Count, Is.EqualTo(2));
 		}
 	}
 }
