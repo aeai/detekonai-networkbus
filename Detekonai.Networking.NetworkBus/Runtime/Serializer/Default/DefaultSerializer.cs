@@ -71,7 +71,7 @@ namespace Detekonai.Networking.Serializer
 
 		private static Type GetCollectionNetworkSerializableType(Type type)
 		{
-			if (type.IsAssignableTo(typeof(ICollection)))
+			if (typeof(ICollection).IsAssignableFrom(type))
 			{
 				Type[] tp = type.GenericTypeArguments;
 				if (tp.Length == 1 && tp[0].GetCustomAttribute<NetworkSerializableAttribute>() != null)
