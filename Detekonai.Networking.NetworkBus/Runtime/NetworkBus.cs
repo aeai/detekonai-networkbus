@@ -23,7 +23,7 @@ namespace Detekonai.Networking
 		private ICommChannel channel;
 
 		private HashSet<BaseMessage> processedMessages = new HashSet<BaseMessage>();
-		
+
 		public string Name { get; private set; }
         public ICommChannel Channel { 
 			get
@@ -150,8 +150,13 @@ namespace Detekonai.Networking
 				}
 				else
                 {
+					LogConnector?.Log(this, $"Network message {msg.GetType()} requres a reply but we don't have a reply handler registered!", LogLevel.Error);
 					return;
                 }
+			}
+            else 
+			{
+				LogConnector?.Log(this, "Failed to deserialize message!", LogLevel.Error);
 			}
 
 			return;
@@ -175,6 +180,10 @@ namespace Detekonai.Networking
 					LogConnector?.Log(this, $"{Name} Dispatching message {msg.GetType()} to memory bus");
 					token.Trigger(msg);
 				}
+			}
+			else
+			{
+				LogConnector?.Log(this, "Failed to deserialize message!", LogLevel.Error);
 			}
 		}
 
