@@ -8,6 +8,7 @@ using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using static Detekonai.Core.Common.ILogConnector;
 
 namespace Detekonai.Networking
@@ -119,10 +120,15 @@ namespace Detekonai.Networking
 
         public UniversalAwaitable<BaseMessage> SendRPC(BaseMessage msg)
         {
-			BinaryBlob blob = Serialize(msg);
-			UniversalAwaitable<ICommResponse> res = channel.SendRPC(blob);
-			return new UniversalAwaitable<BaseMessage>(new MessageAwaiter(this, res.GetAwaiter()));
+			return SendRPC(msg, CancellationToken.None);
         }
+
+		public UniversalAwaitable<BaseMessage> SendRPC(BaseMessage msg, CancellationToken token)
+        {
+			BinaryBlob blob = Serialize(msg);
+			UniversalAwaitable<ICommResponse> res = channel.SendRPC(blob, token);
+			return new UniversalAwaitable<BaseMessage>(new MessageAwaiter(this, res.GetAwaiter()));
+		}
 
 
 		private void Connect()
@@ -275,5 +281,5 @@ namespace Detekonai.Networking
 				channel.Tactics.OnBlobReceived -= Channel_BlobReceived;
 			}
 		}
-	}
+    }
 }

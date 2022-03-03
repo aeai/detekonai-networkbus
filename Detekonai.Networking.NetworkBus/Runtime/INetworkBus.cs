@@ -2,6 +2,7 @@
 using Detekonai.Core.Common;
 using Detekonai.Networking.Runtime.AsyncEvent;
 using System;
+using System.Threading;
 
 namespace Detekonai.Networking
 {
@@ -12,5 +13,6 @@ namespace Detekonai.Networking
 		bool Active { get; }
 		ILogConnector LogConnector { get; set; }
 		UniversalAwaitable<BaseMessage> SendRPC(BaseMessage msg);
+		UniversalAwaitable<BaseMessage> SendRPC(BaseMessage msg, CancellationToken token);
 	}
 }
