@@ -84,6 +84,15 @@ namespace Detekonai.Networking.Serializer
 
 		private IPropertySerializer FindSerializer(Type ownerType, Type type, Delegate getterDelegate, Delegate setterDelegate, INetworkSerializerFactory serFactory) 
 		{
+			if(type == typeof(object))
+            {
+				var ser = typeof(RawPropertySerializer<>).MakeGenericType(ownerType);
+				return (IPropertySerializer)Activator.CreateInstance(ser, new object[] { getterDelegate, setterDelegate, typeRepo });
+			}else if(type == typeof(object[]))
+			{
+				var ser = typeof(RawArraySerializer<>).MakeGenericType(ownerType);
+				return (IPropertySerializer)Activator.CreateInstance(ser, new object[] { getterDelegate, setterDelegate, typeRepo });
+			}
 			NetworkSerializableAttribute gnab = type.GetCustomAttribute<NetworkSerializableAttribute>();
 			if (gnab == null)
 			{

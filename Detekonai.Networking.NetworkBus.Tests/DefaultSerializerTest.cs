@@ -40,6 +40,114 @@ namespace Detekonai.Networking.Serializer
 			[NetworkSerializableProperty("Int")]
 			public int Number { get; set; }
 		}
+		
+		[NetworkSerializable]
+		private class MessageWithObject 
+		{
+			[NetworkSerializableProperty("String")]
+			public string StringProp { get; set; }
+			[NetworkSerializableProperty("Raw")]
+			public object Raw { get; set; }
+		}
+
+		[NetworkSerializable]
+		private class MessageWithObjectArray
+		{
+			[NetworkSerializableProperty("String")]
+			public string StringProp { get; set; }
+			[NetworkSerializableProperty("Raw")]
+			public object[] Raw { get; set; }
+		}
+
+		[Test]
+		public void Default_serializer_can_serialize_raw_objects() 
+		{
+			object value = 12;
+
+			INetworkSerializerFactory factory = new DefaultSerializerFactory();
+			BinaryBlobPool pool = new BinaryBlobPool(10, 128);
+
+			DefaultSerializer serializer = new DefaultSerializer(typeof(MessageWithObject), new TypeConverterRepository(), factory);
+
+			MessageWithObject msg = new MessageWithObject() { StringProp = "Test", Raw = value };
+			BinaryBlob blob = pool.GetBlob();
+			serializer.Serialize(blob, msg);
+			blob.JumpIndexToBegin();
+			MessageWithObject msg2 = (MessageWithObject)serializer.Deserialize(blob);
+
+			Assert.That(msg2, Is.Not.Null);
+			Assert.That(msg2.StringProp, Is.EqualTo("Test"));
+			Assert.That(msg2.Raw, Is.EqualTo(value));
+		}
+
+		[Test]
+		public void Default_serializer_can_serialize_raw_lists()
+		{
+			object value = new List<int>() { 1234, 5678};
+
+			INetworkSerializerFactory factory = new DefaultSerializerFactory();
+			BinaryBlobPool pool = new BinaryBlobPool(10, 128);
+
+			DefaultSerializer serializer = new DefaultSerializer(typeof(MessageWithObject), new TypeConverterRepository(), factory);
+
+			MessageWithObject msg = new MessageWithObject() { StringProp = "Test", Raw = value };
+			BinaryBlob blob = pool.GetBlob();
+			serializer.Serialize(blob, msg);
+			blob.JumpIndexToBegin();
+			MessageWithObject msg2 = (MessageWithObject)serializer.Deserialize(blob);
+
+			Assert.That(msg2, Is.Not.Null);
+			List<int> res = (List<int>)msg2.Raw;
+			Assert.That(msg2.StringProp, Is.EqualTo("Test"));
+			Assert.That(res.Count, Is.EqualTo(2));
+			Assert.That(res[0], Is.EqualTo(1234));
+			Assert.That(res[1], Is.EqualTo(5678));
+		}
+
+		[Test]
+		public void Default_serializer_can_serialize_raw_arrays()
+		{
+			object[] value = new object[]{ 1234, "alma", 56 };
+
+			INetworkSerializerFactory factory = new DefaultSerializerFactory();
+			BinaryBlobPool pool = new BinaryBlobPool(10, 128);
+
+			DefaultSerializer serializer = new DefaultSerializer(typeof(MessageWithObjectArray), new TypeConverterRepository(), factory);
+
+			MessageWithObjectArray msg = new MessageWithObjectArray() { StringProp = "Test", Raw = value };
+			BinaryBlob blob = pool.GetBlob();
+			serializer.Serialize(blob, msg);
+			blob.JumpIndexToBegin();
+			MessageWithObjectArray msg2 = (MessageWithObjectArray)serializer.Deserialize(blob);
+
+			Assert.That(msg2, Is.Not.Null);
+			Assert.That(msg2.StringProp, Is.EqualTo("Test"));
+			Assert.That(msg2.Raw.Length, Is.EqualTo(3));
+			Assert.That(msg2.Raw[0], Is.EqualTo(1234));
+			Assert.That(msg2.Raw[1], Is.EqualTo("alma"));
+			Assert.That(msg2.Raw[2], Is.EqualTo(56));
+		}
+
+		[Test]
+		public void Default_serializer_can_serialize_empty_raw_arrays()
+		{
+			object[] value = new object[] {};
+
+			INetworkSerializerFactory factory = new DefaultSerializerFactory();
+			BinaryBlobPool pool = new BinaryBlobPool(10, 128);
+
+			DefaultSerializer serializer = new DefaultSerializer(typeof(MessageWithObjectArray), new TypeConverterRepository(), factory);
+
+			MessageWithObjectArray msg = new MessageWithObjectArray() { StringProp = "Test", Raw = value };
+			BinaryBlob blob = pool.GetBlob();
+			serializer.Serialize(blob, msg);
+			blob.JumpIndexToBegin();
+			MessageWithObjectArray msg2 = (MessageWithObjectArray)serializer.Deserialize(blob);
+
+			Assert.That(msg2, Is.Not.Null);
+			Assert.That(msg2.StringProp, Is.EqualTo("Test"));
+			Assert.That(msg2.Raw.Length, Is.EqualTo(0));
+		}
 
 		// A Test behaves as an ordinary method
 		[Test]

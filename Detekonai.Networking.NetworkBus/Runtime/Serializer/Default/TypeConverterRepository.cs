@@ -1,6 +1,7 @@
 ﻿using Detekonai.Core;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 
 namespace Detekonai.Networking.Serializer
 {
@@ -8,20 +9,32 @@ namespace Detekonai.Networking.Serializer
 	{
 		public Delegate writer;
 		public Delegate reader;
+		public Action<BinaryBlob, object> rawWriter;
+		public Func<BinaryBlob, object> rawReader;
 	}
 
 	public interface ITypeConverterRepository
 	{
 		bool TryGetConverter(Type type, out STypeConverter del);
+		bool TryGetConverter(int typeId, out STypeConverter del);
 	}
 
 	public sealed class TypeConverterRepository : ITypeConverterRepository
 	{
 		private Dictionary<Type, STypeConverter> converters = new Dictionary<Type, STypeConverter>();
-
+		private List<Type> typeList = new List<Type>();
 		public bool TryGetConverter(Type type, out STypeConverter del)
 		{
 			return converters.TryGetValue(type, out del);
+		}
+		public bool TryGetConverter(int typeId, out STypeConverter del)
+		{
+			if(typeId >= 0 && typeId < typeList.Count)
+            {
+				return converters.TryGetValue(typeList[typeId], out del);
+            }
+			del = default;
+			return false;
 		}
 
 		public void AddConverter(Type type, Delegate writer, Delegate reader)
@@ -55,7 +68,6 @@ namespace Detekonai.Networking.Serializer
 			RegisterListConverter(blob.AddUShort, blob.ReadUShort);
 			RegisterListConverter(blob.AddSingle, blob.ReadSingle);
 		}
-
 		private void RegisterListConverter<T>(Action<T> setFunc, Func<T> getFunc)
 		{
 			var writerType = typeof(Action<,>).MakeGenericType(typeof(BinaryBlob), typeof(T));
@@ -81,22 +93,39 @@ namespace Detekonai.Networking.Serializer
 				}
 				return res;
 			};
+			ushort id = (ushort)typeList.Count;
 			converters[typeof(List<T>)] = new STypeConverter
 			{
 				writer = w,
 				reader = r,
+				rawWriter = (BinaryBlob blob, object ob) => {
+					blob.AddUShort(id);
+					((Action<BinaryBlob, List<T>>)w).Invoke(blob, (List<T>)ob);
+				},
+				rawReader = (BinaryBlob blob) => { return ((Func<BinaryBlob, List<T>>)r).Invoke(blob); },
 			};
+			typeList.Add(typeof(List<T>));
 		}
 
 		private void RegisterSimpleConverter<T>(Action<T> setFunc, Func<T> getFunc)
 		{
 			var writerType = typeof(Action<,>).MakeGenericType(typeof(BinaryBlob), typeof(T));
 			var readerType = typeof(Func<,>).MakeGenericType(typeof(BinaryBlob), typeof(T));
+			var wDelegate = Delegate.CreateDelegate(writerType, null, setFunc.Method);
+			var rDelegate = Delegate.CreateDelegate(readerType, null, getFunc.Method);
+			ushort id = (ushort)typeList.Count;
 			converters[typeof(T)] = new STypeConverter
 			{
-				writer = Delegate.CreateDelegate(writerType, null, setFunc.Method),
-				reader = Delegate.CreateDelegate(readerType, null, getFunc.Method),
+				writer = wDelegate,
+				reader = rDelegate,
+				//rawWriter = (Action<BinaryBlob, object>)Delegate.CreateDelegate(typeof(Action<BinaryBlob,object>), null, setFunc.Method),
+				rawWriter = (BinaryBlob blob, object ob) => {
+					blob.AddUShort(id);
+					((Action<BinaryBlob, T>)wDelegate).Invoke(blob, (T)ob);
+				},
+				rawReader = (BinaryBlob blob) => { return ((Func<BinaryBlob, T>)rDelegate).Invoke(blob); },
 			};
+			typeList.Add(typeof(T));
 		}
 	}
 }
