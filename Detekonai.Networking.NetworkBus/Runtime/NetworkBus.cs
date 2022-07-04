@@ -58,7 +58,7 @@ namespace Detekonai.Networking
 			RegisterMessages(factory);
 		}
 
-        public class MessageRequestTicket
+        public class MessageRequestTicket : INetworkBus.IMessageRequestTicket
         {
             private readonly NetworkBus bus;
             private readonly IRequestTicket originalTicket;
@@ -168,7 +168,7 @@ namespace Detekonai.Networking
 			return;
 		}
 
-		public void SetRequestHandler<T>(Action<T, MessageRequestTicket> handler) where T : BaseMessage
+		public void SetRequestHandler<T>(Action<T, INetworkBus.IMessageRequestTicket> handler) where T : BaseMessage
 		{
 			responseDelegates[typeof(T)] = (BaseMessage x, MessageRequestTicket y) => handler(x as T, y);
 		}
