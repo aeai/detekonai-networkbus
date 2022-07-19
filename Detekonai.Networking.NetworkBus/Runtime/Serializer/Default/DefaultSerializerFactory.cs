@@ -18,7 +18,14 @@ namespace Detekonai.Networking.Serializer
 		{
 			if(!serializers.TryGetValue(type, out INetworkSerializer ser))
             {
-				ser = new DefaultSerializer(type, converter, this);
+				if(converter.TryGetConverter(type, out STypeConverter conv))
+                {
+					ser = new PrimitiveSerializer(type, conv);
+                }
+				else
+                {
+					ser = new DefaultSerializer(type, converter, this);
+                }
 				serializers[type] = ser;
 			}
 			return ser;

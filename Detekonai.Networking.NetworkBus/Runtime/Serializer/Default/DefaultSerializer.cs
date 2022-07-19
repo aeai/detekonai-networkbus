@@ -18,7 +18,7 @@ namespace Detekonai.Networking.Serializer
 
 		public Type SerializedType { get; private set; }
 
-        public int RequiredSize { get; private set; }
+		public int RequiredSize { get; private set; } = 0;
 
 		public DefaultSerializer(Type type, ITypeConverterRepository typeConverterRepo, INetworkSerializerFactory factory)
 		{
@@ -29,12 +29,12 @@ namespace Detekonai.Networking.Serializer
 
 		private void Initialize(Type t, INetworkSerializerFactory serFactory)
 		{
-
 			var props = t.GetProperties().Where(p => p.IsDefined(typeof(NetworkSerializablePropertyAttribute))).OrderBy(x => x.GetCustomAttribute<NetworkSerializablePropertyAttribute>().Name);
 			byte[] data = new byte[512];
 			NetworkSerializableAttribute nab = t.GetCustomAttribute<NetworkSerializableAttribute>();
+			string fn = t.Name;
 			RequiredSize = nab.SizeRequirement;
-			string fn = nab.Name != null ? nab.Name : t.Name;
+			fn = nab.Name != null ? nab.Name : t.Name;
 			uint len = (uint)System.Text.Encoding.UTF8.GetBytes(fn, 0, fn.Length, data, 0);
 			MessageId = MurmurHash3.Hash(data, len, 19850922);
 
@@ -51,22 +51,44 @@ namespace Detekonai.Networking.Serializer
 				var getterDelegate = Delegate.CreateDelegate(getterType, null, getter);
 				var setterDelegate = Delegate.CreateDelegate(setterType, null, setter);
 
-				Type colType = GetCollectionNetworkSerializableType(getter.ReturnType);
-				if (colType != null)
+				(Type,Type) dicType = GetDictionaryNetworkSerializableType(getter.ReturnType);
+				if (dicType.Item1 != null && dicType.Item2 != null)
 				{
-					var ser = typeof(EnumerablePropertySerializer<,,>).MakeGenericType(t, getter.ReturnType, colType);
-					INetworkSerializer pser = serFactory.Build(colType);
-					serializers.Add((IPropertySerializer)Activator.CreateInstance(ser, new object[] { getterDelegate, setterDelegate, pser }));
+					var ser = typeof(DictionaryPropertySerializer<,,,>).MakeGenericType(t, getter.ReturnType, dicType.Item1, dicType.Item2);
+					serializers.Add((IPropertySerializer)Activator.CreateInstance(ser, new object[] { getterDelegate, setterDelegate, serFactory.Build(dicType.Item1), serFactory.Build(dicType.Item2) }));
 				}
 				else
-                {
-					IPropertySerializer ser = FindSerializer(t, getter.ReturnType, getterDelegate, setterDelegate, serFactory);
-					if (ser != null)
-					{ 
-						serializers.Add(ser);
-                    }
+				{
+					Type colType = GetCollectionNetworkSerializableType(getter.ReturnType);
+					if (colType != null)
+					{
+						var ser = typeof(EnumerablePropertySerializer<,,>).MakeGenericType(t, getter.ReturnType, colType);
+						INetworkSerializer pser = serFactory.Build(colType);
+						serializers.Add((IPropertySerializer)Activator.CreateInstance(ser, new object[] { getterDelegate, setterDelegate, pser }));
+					}
+					else
+					{
+						IPropertySerializer ser = FindSerializer(t, getter.ReturnType, getterDelegate, setterDelegate, serFactory);
+						if (ser != null)
+						{
+							serializers.Add(ser);
+						}
+					}
 				}
 			}
+		}
+
+		private static (Type,Type) GetDictionaryNetworkSerializableType(Type type)
+		{
+			if (typeof(IDictionary).IsAssignableFrom(type))
+			{
+				Type[] tp = type.GenericTypeArguments;
+				if (tp.Length == 2)
+				{
+					return (tp[0],tp[1]);
+				}
+			}
+			return (null,null);
 		}
 
 		private static Type GetCollectionNetworkSerializableType(Type type)

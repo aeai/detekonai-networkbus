@@ -18,7 +18,7 @@ namespace Detekonai.Networking.Serializer
 
         public void Deserialize(object ob, BinaryBlob blob)
         {
-            int typeId = blob.ReadShort();
+            int typeId = blob.ReadUShort();
             if (repo.TryGetConverter(typeId, out STypeConverter del))
             {
                 var r = del.rawReader.Invoke(blob);
@@ -31,6 +31,7 @@ namespace Detekonai.Networking.Serializer
             var r = getter.Invoke((TT)ob);
             if (repo.TryGetConverter(r.GetType(), out STypeConverter del))
             {
+                blob.AddUShort(del.id);
                 del.rawWriter.Invoke(blob, r);
             }
         }

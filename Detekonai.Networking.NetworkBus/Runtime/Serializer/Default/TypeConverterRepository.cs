@@ -11,6 +11,7 @@ namespace Detekonai.Networking.Serializer
 		public Delegate reader;
 		public Action<BinaryBlob, object> rawWriter;
 		public Func<BinaryBlob, object> rawReader;
+		public ushort id;
 	}
 
 	public interface ITypeConverterRepository
@@ -93,13 +94,12 @@ namespace Detekonai.Networking.Serializer
 				}
 				return res;
 			};
-			ushort id = (ushort)typeList.Count;
 			converters[typeof(List<T>)] = new STypeConverter
 			{
 				writer = w,
 				reader = r,
-				rawWriter = (BinaryBlob blob, object ob) => {
-					blob.AddUShort(id);
+				id = (ushort)typeList.Count,
+			rawWriter = (BinaryBlob blob, object ob) => {
 					((Action<BinaryBlob, List<T>>)w).Invoke(blob, (List<T>)ob);
 				},
 				rawReader = (BinaryBlob blob) => { return ((Func<BinaryBlob, List<T>>)r).Invoke(blob); },
@@ -113,14 +113,12 @@ namespace Detekonai.Networking.Serializer
 			var readerType = typeof(Func<,>).MakeGenericType(typeof(BinaryBlob), typeof(T));
 			var wDelegate = Delegate.CreateDelegate(writerType, null, setFunc.Method);
 			var rDelegate = Delegate.CreateDelegate(readerType, null, getFunc.Method);
-			ushort id = (ushort)typeList.Count;
 			converters[typeof(T)] = new STypeConverter
 			{
 				writer = wDelegate,
 				reader = rDelegate,
-				//rawWriter = (Action<BinaryBlob, object>)Delegate.CreateDelegate(typeof(Action<BinaryBlob,object>), null, setFunc.Method),
+				id = (ushort)typeList.Count,
 				rawWriter = (BinaryBlob blob, object ob) => {
-					blob.AddUShort(id);
 					((Action<BinaryBlob, T>)wDelegate).Invoke(blob, (T)ob);
 				},
 				rawReader = (BinaryBlob blob) => { return ((Func<BinaryBlob, T>)rDelegate).Invoke(blob); },

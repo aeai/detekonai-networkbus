@@ -28,7 +28,7 @@ namespace Detekonai.Networking.Serializer
             object[] arr = new object[count];
             for (ushort i = 0; i < count; i++)
             {
-                int typeId = blob.ReadShort();
+                int typeId = blob.ReadUShort();
                 if (repo.TryGetConverter(typeId, out STypeConverter del))
                 {
                     arr[i] = del.rawReader.Invoke(blob);
@@ -45,6 +45,7 @@ namespace Detekonai.Networking.Serializer
             {
                 if (repo.TryGetConverter(arr[i].GetType(), out STypeConverter del))
                 {
+                    blob.AddUShort(del.id);
                     del.rawWriter.Invoke(blob, arr[i]);
                 }
             }

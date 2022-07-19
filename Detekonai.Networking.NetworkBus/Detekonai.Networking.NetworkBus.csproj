@@ -7,7 +7,7 @@
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Authors>Aeai</Authors>
-    <Version>0.0.13</Version>
+    <Version>0.0.14</Version>
     <Company>Detekonai</Company>
     <Configurations>Debug;Release;MasterDebug</Configurations>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>

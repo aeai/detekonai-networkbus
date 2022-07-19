@@ -30,6 +30,22 @@ namespace Detekonai.Networking.Serializer
 			[NetworkSerializableProperty("List")]
 			public List<string> StringList { get; set; } = new List<string>();
 
+			[NetworkSerializableProperty("Dict")]
+			public Dictionary<int, string> intStringMap { get; set; } = new Dictionary<int, string>();
+
+		}
+
+		[NetworkSerializable]
+		private class MessageWithDictionary
+		{
+			[NetworkSerializableProperty("String")]
+			public string StringProp { get; set; } = "ss";
+
+			[NetworkSerializableProperty("Int")]
+			public int intProp { get; set; } = 4;
+
+			[NetworkSerializableProperty("Dict")]
+			public Dictionary<int, string> IntStringMap { get; set; } = new Dictionary<int, string>();
 		}
 
 		[NetworkSerializable]
@@ -149,7 +165,35 @@ namespace Detekonai.Networking.Serializer
 			Assert.That(msg2.Raw.Length, Is.EqualTo(0));
 		}
 
-		// A Test behaves as an ordinary method
+		[Test]
+		public void Default_serializer_can_serialize_dictionaries()
+		{
+			Dictionary<int,string> value = new Dictionary<int, string>();
+			value[13124] = "A big number";
+			value[-1234] = "A small number";
+			value[1985] = "A year";
+
+			INetworkSerializerFactory factory = new DefaultSerializerFactory();
+			BinaryBlobPool pool = new BinaryBlobPool(10, 128);
+
+			DefaultSerializer serializer = new DefaultSerializer(typeof(MessageWithDictionary), new TypeConverterRepository(), factory);
+
+			MessageWithDictionary msg = new MessageWithDictionary() { IntStringMap = value };
+			BinaryBlob blob = pool.GetBlob();
+			serializer.Serialize(blob, msg);
+			blob.JumpIndexToBegin();
+			MessageWithDictionary msg2 = (MessageWithDictionary)serializer.Deserialize(blob);
+
+			Assert.That(msg2, Is.Not.Null);
+			Assert.That(msg2.IntStringMap.Count, Is.EqualTo(3));
+			Assert.That(msg2.IntStringMap.ContainsKey(13124), Is.True);
+			Assert.That(msg2.IntStringMap.ContainsKey(-1234), Is.True);
+			Assert.That(msg2.IntStringMap.ContainsKey(1985), Is.True);
+			Assert.That(msg2.IntStringMap[13124], Is.EqualTo("A big number"));
+			Assert.That(msg2.IntStringMap[-1234], Is.EqualTo("A small number"));
+			Assert.That(msg2.IntStringMap[1985], Is.EqualTo("A year"));
+		}
+
 		[Test]
 		public void DefaultSerializerTestSimplePasses()
 		{
