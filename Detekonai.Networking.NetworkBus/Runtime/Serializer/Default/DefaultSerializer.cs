@@ -1,4 +1,5 @@
 ﻿using Detekonai.Core;
+using Detekonai.Core.Common;
 using System;
 using System.Collections;
 using System.Collections.Generic;
