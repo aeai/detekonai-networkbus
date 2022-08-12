@@ -1,13 +1,13 @@
 {
   "name": "com.detekonai.networking.networkbus",
-  "version": "0.0.1",
+  "version": "0.0.18",
   "displayName": "Detekonai Network Bus",
   "description": "NetworkBus for Client Server communication",
   "unity": "2019.1",
   "unityRelease": "0b5",
   "dependencies":
   {
-	"com.detekonai.networking":"0.0.1",
+	"com.detekonai.networking":"0.0.32",
 	"com.detekonai.core.messagebus":"0.0.1"
   },
  "keywords": [

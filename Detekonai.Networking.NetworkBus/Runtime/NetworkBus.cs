@@ -9,7 +9,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using static Detekonai.Core.Common.ILogConnector;
+using static Detekonai.Core.Common.ILogger;
 
 namespace Detekonai.Networking
 {
@@ -49,7 +49,7 @@ namespace Detekonai.Networking
 			}
 		}
 
-		public ILogConnector LogConnector { get; set; } = null;
+		public ILogger LogConnector { get; set; } = null;
 
 		public NetworkBus(string name, IMessageBus bus, INetworkSerializerFactory factory)
 		{

@@ -17,7 +17,7 @@ namespace Detekonai.Networking
 		string Name { get; }
 		ICommChannel Channel { get; set; }
 		bool Active { get; }
-		ILogConnector LogConnector { get; set; }
+		ILogger LogConnector { get; set; }
 		UniversalAwaitable<BaseMessage> SendRPC(BaseMessage msg);
 		UniversalAwaitable<BaseMessage> SendRPC(BaseMessage msg, CancellationToken token);
 		void SetRequestHandler<T>(Action<T, IMessageRequestTicket> handler) where T : BaseMessage;
