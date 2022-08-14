@@ -15,7 +15,7 @@
   </PropertyGroup>
 
   <ItemGroup Condition=" '$(Configuration)' != 'MasterDebug' ">
-    <PackageReference Include="Detekonai.Core.MessageBus" Version="0.0.1" />
+    <PackageReference Include="Detekonai.Core.MessageBus" Version="0.0.2" />
     <PackageReference Include="Detekonai.Networking" Version="0.0.32" />
   </ItemGroup>
   <ItemGroup Condition=" '$(Configuration)' == 'MasterDebug' ">
