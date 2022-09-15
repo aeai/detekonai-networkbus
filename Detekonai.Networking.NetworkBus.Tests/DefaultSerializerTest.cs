@@ -12,8 +12,8 @@ namespace Detekonai.Networking.Serializer
 {
 	public class DefaultSerializerTest
 	{
-		[NetworkSerializable]
-		private class NetworkTestMessage : BaseMessage
+		
+		private class NetworkTestMessage : NetworkMessage
 		{
 			[NetworkSerializableProperty("String")]
 			public string StringProp { get; set; }

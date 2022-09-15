@@ -171,11 +171,9 @@ namespace Detekonai.Networking
 			responseDelegates[typeof(T)] = (BaseMessage x, MessageRequestTicket y) => handler(x as T, y);
 		}
 
-
 		private void Channel_BlobReceived(ICommChannel channel, BinaryBlob e)
 		{
-			var msg = Deserialize(e);
-
+			NetworkMessage msg = Deserialize(e);
 			if(msg != null)
 			{
 				if(tokens.TryGetValue(msg.GetType(), out IHandlerToken token))
@@ -197,7 +195,10 @@ namespace Detekonai.Networking
 			{
 
 				NetworkMessage msg = (NetworkMessage)ser.Deserialize(blob);
-				msg.Local = false;
+				if(msg != null)
+                {
+					msg.Local = false;
+                }
 				return msg;
 			}
 			else
