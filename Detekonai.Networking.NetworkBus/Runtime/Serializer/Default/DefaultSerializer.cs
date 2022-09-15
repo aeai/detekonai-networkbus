@@ -15,7 +15,7 @@ namespace Detekonai.Networking.Serializer
 		private ITypeConverterRepository typeRepo;
 		private Func<object> factory;
 
-		public uint MessageId { get; private set; }
+		public uint ObjectId { get; private set; }
 
 		public Type SerializedType { get; private set; }
 
@@ -37,7 +37,7 @@ namespace Detekonai.Networking.Serializer
 			RequiredSize = nab.SizeRequirement;
 			fn = nab.Name != null ? nab.Name : t.Name;
 			uint len = (uint)System.Text.Encoding.UTF8.GetBytes(fn, 0, fn.Length, data, 0);
-			MessageId = MurmurHash3.Hash(data, len, 19850922);
+			ObjectId = MurmurHash3.Hash(data, len, 19850922);
 
 			factory = Expression.Lambda<Func<System.Object>>(
 				Expression.New(t.GetConstructor(Type.EmptyTypes))

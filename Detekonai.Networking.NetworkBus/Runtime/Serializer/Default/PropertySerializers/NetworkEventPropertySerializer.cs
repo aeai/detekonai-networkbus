@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 
 namespace Detekonai.Networking.Serializer
 {
+    //TODO looking for a better name, it serializes properties where the value also marked as NetworkSerializable
     public class NetworkEventPropertySerializer<TT,T> : IPropertySerializer
     {
         private readonly Func<TT, T> getterFunc;

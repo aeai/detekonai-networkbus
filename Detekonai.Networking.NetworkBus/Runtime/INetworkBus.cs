@@ -11,15 +11,15 @@ namespace Detekonai.Networking
 	{
 		public interface IMessageRequestTicket
         {
-			void Fulfill(BaseMessage msg);
+			void Fulfill(NetworkMessage msg);
 		}
 
 		string Name { get; }
 		ICommChannel Channel { get; set; }
 		bool Active { get; }
 		ILogger LogConnector { get; set; }
-		UniversalAwaitable<BaseMessage> SendRPC(BaseMessage msg);
-		UniversalAwaitable<BaseMessage> SendRPC(BaseMessage msg, CancellationToken token);
-		void SetRequestHandler<T>(Action<T, IMessageRequestTicket> handler) where T : BaseMessage;
+		UniversalAwaitable<BaseMessage> SendRPC(NetworkMessage msg);
+		UniversalAwaitable<BaseMessage> SendRPC(NetworkMessage msg, CancellationToken token);
+		void SetRequestHandler<T>(Action<T, IMessageRequestTicket> handler) where T : NetworkMessage;
 	}
 }

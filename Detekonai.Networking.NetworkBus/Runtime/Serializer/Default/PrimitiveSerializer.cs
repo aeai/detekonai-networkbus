@@ -12,7 +12,7 @@ namespace Detekonai.Networking.Serializer
     {
         private readonly STypeConverter converter;
 
-        public uint MessageId { get; private set; }
+        public uint ObjectId { get; private set; }
 
         public Type SerializedType { get; private set; }
 

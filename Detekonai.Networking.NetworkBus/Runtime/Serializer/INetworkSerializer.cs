@@ -9,7 +9,7 @@ namespace Detekonai.Networking
 	{
 		void Serialize(BinaryBlob blob, object ob);
 		object Deserialize(BinaryBlob blob);
-		uint MessageId { get; }
+		uint ObjectId { get; }
 		Type SerializedType { get; }
 		int RequiredSize { get; }
 	}

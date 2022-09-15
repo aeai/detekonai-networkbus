@@ -5,18 +5,12 @@ using System.Collections.Generic;
 
 namespace Detekonai.Networking.Serializer
 {
-	public interface IPropertySerializer
-	{
-		void Deserialize(object ob, BinaryBlob blob);
-		void Serialize(object ob, BinaryBlob blob);
-	}
-
 	public class PropertySerializer<TT, T> : IPropertySerializer
 	{
-		private Func<TT, T> getter;
-		private Action<TT, T> setter;
-		private Action<BinaryBlob, T> writer;
-		private Func<BinaryBlob, T> reader;
+		private readonly Func<TT, T> getter;
+		private readonly Action<TT, T> setter;
+		private readonly Action<BinaryBlob, T> writer;
+		private readonly Func<BinaryBlob, T> reader;
 
 		public PropertySerializer(Func<TT, T> getterFunc, Action<TT, T> setterFunc, Action<BinaryBlob, T> writerFunc, Func<BinaryBlob, T> readerFunc)
 		{
