@@ -23,8 +23,6 @@ namespace Detekonai.Networking
 
 		private ICommChannel channel;
 
-		private HashSet<BaseMessage> processedMessages = new HashSet<BaseMessage>();
-
 		public string Name { get; private set; }
         public ICommChannel Channel { 
 			get
@@ -173,14 +171,11 @@ namespace Detekonai.Networking
 			responseDelegates[typeof(T)] = (BaseMessage x, MessageRequestTicket y) => handler(x as T, y);
 		}
 
-
 		private void Channel_BlobReceived(ICommChannel channel, BinaryBlob e)
 		{
-			var msg = Deserialize(e);
-
+			NetworkMessage msg = Deserialize(e);
 			if(msg != null)
 			{
-				processedMessages.Add(msg);
 				if(tokens.TryGetValue(msg.GetType(), out IHandlerToken token))
 				{
 					LogConnector?.Log(this, $"{Name} Dispatching message {msg.GetType()} to memory bus");
@@ -193,13 +188,18 @@ namespace Detekonai.Networking
 			}
 		}
 
-		private BaseMessage Deserialize(BinaryBlob blob)
+		private NetworkMessage Deserialize(BinaryBlob blob)
 		{
 			uint hash = blob.ReadUInt();
 			if (serializersByHash.TryGetValue(hash, out INetworkSerializer ser))
 			{
-				
-				return (BaseMessage)ser.Deserialize(blob);
+
+				NetworkMessage msg = (NetworkMessage)ser.Deserialize(blob);
+				if(msg != null)
+                {
+					msg.Local = false;
+                }
+				return msg;
 			}
 			else
             {
@@ -212,7 +212,7 @@ namespace Detekonai.Networking
 			var types = AppDomain.CurrentDomain.GetAssemblies().Where(x => !IsOmittable(x)).SelectMany(s => s.GetTypes()).Where(p => p.GetCustomAttribute<NetworkSerializableAttribute>() != null);
 			foreach(Type t in types)
 			{
-				if (t.IsSubclassOf(typeof(BaseMessage)))
+				if (t.IsSubclassOf(typeof(NetworkMessage)))
 				{
 					LogConnector?.Log(this, $"Message {t} is registered to NetworkBus {Name}.");
 					tokens[t] = bus.Subscribe(t, OnLocalMessage);
@@ -239,7 +239,7 @@ namespace Detekonai.Networking
 
 		private void OnLocalMessage(BaseMessage msg)
 		{
-			if(!processedMessages.Remove(msg) && Active)
+			if(msg is NetworkMessage nmsg && nmsg.Local && Active)
 			{
 				LogConnector?.Log(this, $"{Name} Dispatching message {msg.GetType()} to network");
 				BinaryBlob blob = Serialize(msg);
