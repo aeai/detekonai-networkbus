@@ -209,7 +209,7 @@ namespace Detekonai.Networking
 
 		private void RegisterMessages(INetworkSerializerFactory factory)
 		{
-			var types = AppDomain.CurrentDomain.GetAssemblies().Where(x => !IsOmittable(x)).SelectMany(s => s.GetTypes()).Where(p => p.GetCustomAttribute<NetworkSerializableAttribute>() != null);
+			var types = AppDomain.CurrentDomain.GetAssemblies().Where(x => !IsOmittable(x)).SelectMany(s => s.GetTypes()).Where(p => p.GetCustomAttribute<NetworkSerializableAttribute>() != null && !p.IsAbstract);
 			foreach(Type t in types)
 			{
 				if (t.IsSubclassOf(typeof(NetworkMessage)))
