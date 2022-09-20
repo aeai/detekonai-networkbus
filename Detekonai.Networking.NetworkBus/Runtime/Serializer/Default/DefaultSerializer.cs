@@ -25,7 +25,14 @@ namespace Detekonai.Networking.Serializer
 		{
 			typeRepo = typeConverterRepo;
 			SerializedType = type;
-			Initialize(type, factory);
+			try
+			{
+				Initialize(type, factory);
+			}
+			catch(Exception ex)
+            {
+				throw new InvalidOperationException($"Failed to setup network serialiser for class: {type}", ex);
+            }
 		}
 
 		private void Initialize(Type t, INetworkSerializerFactory serFactory)
