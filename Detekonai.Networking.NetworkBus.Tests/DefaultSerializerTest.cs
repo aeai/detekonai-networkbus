@@ -20,7 +20,16 @@ namespace Detekonai.Networking.Serializer
 			
 			[NetworkSerializableProperty("Int")]
 			public int IntProp { get; set; }
-			
+
+			[NetworkSerializableProperty("ULong")]
+			public ulong UlongProp { get; set; }
+
+			[NetworkSerializableProperty("TimeOffset")]
+			public DateTimeOffset TimeOffsetProp { get; set; }
+
+			[NetworkSerializableProperty("TimeSpan")]
+			public TimeSpan TimeSpanProp { get; set; }
+
 			[NetworkSerializableProperty("Stuff")]
 			public DataThing Stuff { get; set; }
 
@@ -45,7 +54,7 @@ namespace Detekonai.Networking.Serializer
 			public int intProp { get; set; } = 4;
 
 			[NetworkSerializableProperty("Dict")]
-			public Dictionary<int, string> IntStringMap { get; set; } = new Dictionary<int, string>();
+			public Dictionary<int, string> IntStringMap { get; set; }
 		}
 
 		[NetworkSerializable]
@@ -204,6 +213,10 @@ namespace Detekonai.Networking.Serializer
 			NetworkTestMessage msg = new NetworkTestMessage();
 			msg.StringProp = "alma";
 			msg.IntProp = 1234;
+			msg.UlongProp = 45;
+			msg.TimeSpanProp = TimeSpan.FromSeconds(45);
+			DateTimeOffset now = DateTimeOffset.Now;
+			msg.TimeOffsetProp = now;
 			msg.StringList.Add("barack");
 			msg.StringList.Add("korte");
 			msg.Stuff = new DataThing() { Fruit = "alma", Number = 12 };
@@ -219,6 +232,10 @@ namespace Detekonai.Networking.Serializer
 
 			Assert.That(msg2, Is.Not.Null);
 			Assert.That(msg2.IntProp, Is.EqualTo(1234));
+			Assert.That(msg2.UlongProp, Is.EqualTo(45));
+			Assert.That(msg2.TimeSpanProp, Is.EqualTo(TimeSpan.FromSeconds(45)));
+			Assert.That(msg2.TimeOffsetProp, Is.EqualTo(now));
+			Assert.That(msg2.UlongProp, Is.EqualTo(45));
 			Assert.That(msg2.StringProp, Is.EqualTo("alma"));
 			Assert.That(msg2.StringList.Count, Is.EqualTo(2));
 			Assert.That(msg2.Stuff.Fruit, Is.EqualTo("alma"));

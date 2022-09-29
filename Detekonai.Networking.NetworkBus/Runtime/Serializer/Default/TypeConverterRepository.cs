@@ -68,6 +68,8 @@ namespace Detekonai.Networking.Serializer
 			RegisterListConverter(blob.AddShort, blob.ReadShort);
 			RegisterListConverter(blob.AddUShort, blob.ReadUShort);
 			RegisterListConverter(blob.AddSingle, blob.ReadSingle);
+			RegisterTimeSpan();
+			RegisterTimeOffset();
 		}
 		private void RegisterListConverter<T>(Action<T> setFunc, Func<T> getFunc)
 		{
@@ -124,6 +126,50 @@ namespace Detekonai.Networking.Serializer
 				rawReader = (BinaryBlob blob) => { return ((Func<BinaryBlob, T>)rDelegate).Invoke(blob); },
 			};
 			typeList.Add(typeof(T));
+		}
+
+		private void RegisterTimeSpan()
+		{
+			Action<BinaryBlob, TimeSpan > w = (BinaryBlob blob, TimeSpan sp) => {
+				blob.AddLong(sp.Ticks);
+			};
+			Func<BinaryBlob, TimeSpan> r = (BinaryBlob blob) => {
+				return TimeSpan.FromTicks(blob.ReadLong());
+			};
+
+			converters[typeof(TimeSpan)] = new STypeConverter
+			{
+				writer = w,
+				reader = r,
+				id = (ushort)typeList.Count,
+				rawWriter = (BinaryBlob blob, object ob) => {
+					w.Invoke(blob, (TimeSpan)ob);
+				},
+				rawReader = (BinaryBlob blob) => { return r.Invoke(blob); },
+			};
+			typeList.Add(typeof(TimeSpan));
+		}
+
+		private void RegisterTimeOffset()
+		{
+			Action<BinaryBlob, DateTimeOffset> w = (BinaryBlob blob, DateTimeOffset sp) => {
+				blob.AddLong(sp.UtcTicks);
+			};
+			Func<BinaryBlob, DateTimeOffset> r = (BinaryBlob blob) => {
+				return new DateTimeOffset(blob.ReadLong(), TimeSpan.Zero);
+			};
+
+			converters[typeof(DateTimeOffset)] = new STypeConverter
+			{
+				writer = w,
+				reader = r,
+				id = (ushort)typeList.Count,
+				rawWriter = (BinaryBlob blob, object ob) => {
+					w.Invoke(blob, (DateTimeOffset)ob);
+				},
+				rawReader = (BinaryBlob blob) => { return r.Invoke(blob); },
+			};
+			typeList.Add(typeof(DateTimeOffset));
 		}
 	}
 }
