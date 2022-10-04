@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 
 namespace Detekonai.Networking
 {
-	[AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = true)]
+	[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false, Inherited = true)]
 	public class NetworkSerializableAttribute : Attribute
 	{
 		public string Name { get; private set; }

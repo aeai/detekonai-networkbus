@@ -12,12 +12,26 @@ namespace Detekonai.Networking.Serializer
 {
 	public class DefaultSerializerTest
 	{
-		
+		private class NetworkTestMessageWithPrivateSetter : NetworkMessage
+		{
+			[NetworkSerializableProperty("Int2")]
+			public int Int2Prop { get; private set; } = 2;
+
+
+			public NetworkTestMessageWithPrivateSetter()
+			{
+			}
+
+			public NetworkTestMessageWithPrivateSetter(int int2Value)
+			{
+				Int2Prop = int2Value;
+			}
+		}
 		private class NetworkTestMessage : NetworkMessage
 		{
 			[NetworkSerializableProperty("String")]
 			public string StringProp { get; set; }
-			
+
 			[NetworkSerializableProperty("Int")]
 			public int IntProp { get; set; }
 
@@ -41,7 +55,6 @@ namespace Detekonai.Networking.Serializer
 
 			[NetworkSerializableProperty("Dict")]
 			public Dictionary<int, string> intStringMap { get; set; } = new Dictionary<int, string>();
-
 		}
 
 		[NetworkSerializable]
@@ -58,16 +71,35 @@ namespace Detekonai.Networking.Serializer
 		}
 
 		[NetworkSerializable]
-		private class DataThing 
+		private class MessageWithStruct
+		{
+			[NetworkSerializableProperty("String")]
+			public string StringProp { get; set; } = "ss";
+
+			[NetworkSerializableProperty("struct")]
+			public StructThing structProp { get; set; }
+
+
+			public MessageWithStruct() { }
+		}
+
+		[NetworkSerializable]
+		private class DataThing
 		{
 			[NetworkSerializableProperty("Fruit")]
 			public string Fruit { get; set; }
 			[NetworkSerializableProperty("Int")]
 			public int Number { get; set; }
 		}
-		
+
+		private struct StructThing
+		{		
+			public string Fruit { get; set; }
+			public int Number { get; set; }
+		}
+
 		[NetworkSerializable]
-		private class MessageWithObject 
+		private class MessageWithObject
 		{
 			[NetworkSerializableProperty("String")]
 			public string StringProp { get; set; }
@@ -85,7 +117,7 @@ namespace Detekonai.Networking.Serializer
 		}
 
 		[Test]
-		public void Default_serializer_can_serialize_raw_objects() 
+		public void Default_serializer_can_serialize_raw_objects()
 		{
 			object value = 12;
 
@@ -108,7 +140,7 @@ namespace Detekonai.Networking.Serializer
 		[Test]
 		public void Default_serializer_can_serialize_raw_lists()
 		{
-			object value = new List<int>() { 1234, 5678};
+			object value = new List<int>() { 1234, 5678 };
 
 			INetworkSerializerFactory factory = new DefaultSerializerFactory();
 			BinaryBlobPool pool = new BinaryBlobPool(10, 128);
@@ -132,7 +164,7 @@ namespace Detekonai.Networking.Serializer
 		[Test]
 		public void Default_serializer_can_serialize_raw_arrays()
 		{
-			object[] value = new object[]{ 1234, "alma", 56 };
+			object[] value = new object[] { 1234, "alma", 56 };
 
 			INetworkSerializerFactory factory = new DefaultSerializerFactory();
 			BinaryBlobPool pool = new BinaryBlobPool(10, 128);
@@ -156,7 +188,7 @@ namespace Detekonai.Networking.Serializer
 		[Test]
 		public void Default_serializer_can_serialize_empty_raw_arrays()
 		{
-			object[] value = new object[] {};
+			object[] value = new object[] { };
 
 			INetworkSerializerFactory factory = new DefaultSerializerFactory();
 			BinaryBlobPool pool = new BinaryBlobPool(10, 128);
@@ -177,7 +209,7 @@ namespace Detekonai.Networking.Serializer
 		[Test]
 		public void Default_serializer_can_serialize_dictionaries()
 		{
-			Dictionary<int,string> value = new Dictionary<int, string>();
+			Dictionary<int, string> value = new Dictionary<int, string>();
 			value[13124] = "A big number";
 			value[-1234] = "A small number";
 			value[1985] = "A year";
@@ -201,6 +233,42 @@ namespace Detekonai.Networking.Serializer
 			Assert.That(msg2.IntStringMap[13124], Is.EqualTo("A big number"));
 			Assert.That(msg2.IntStringMap[-1234], Is.EqualTo("A small number"));
 			Assert.That(msg2.IntStringMap[1985], Is.EqualTo("A year"));
+		}
+
+		[Test]
+		public void Default_serializer_can_have_custom_serializers()
+		{
+			INetworkSerializerFactory factory = new DefaultSerializerFactory();
+			BinaryBlobPool pool = new BinaryBlobPool(10, 128);
+			var repo = new TypeConverterRepository();
+
+			Action<BinaryBlob, StructThing> writter = (BinaryBlob blob, StructThing st) =>
+			{
+				blob.AddString(st.Fruit);
+				blob.AddInt(st.Number);
+			};
+			Func<BinaryBlob, StructThing> reader = (BinaryBlob blob) =>
+			{
+				StructThing st = new StructThing();
+				st.Fruit = blob.ReadString();
+				st.Number = blob.ReadInt();
+				return st;
+			};
+			repo.AddConverter(typeof(StructThing), writter, reader);
+			DefaultSerializer serializer = new DefaultSerializer(typeof(MessageWithStruct), repo, factory);
+
+			MessageWithStruct msg = new MessageWithStruct() { StringProp = "alma", structProp = new StructThing() { Fruit = "korte", Number = 9 } };
+			BinaryBlob blob = pool.GetBlob();
+			serializer.Serialize(blob, msg);
+			blob.JumpIndexToBegin();
+			MessageWithStruct msg2 = (MessageWithStruct)serializer.Deserialize(blob);
+
+			Assert.That(msg2, Is.Not.Null);
+			Assert.That(msg2.StringProp, Is.EqualTo("alma"));
+			Assert.That(msg2.structProp, Is.Not.Null);
+			Assert.That(msg2.structProp.Fruit, Is.EqualTo("korte"));
+			Assert.That(msg2.structProp.Number, Is.EqualTo(9));
+
 		}
 
 		[Test]
@@ -242,5 +310,26 @@ namespace Detekonai.Networking.Serializer
 			Assert.That(msg2.Stuff.Number, Is.EqualTo(12));
 			Assert.That(msg2.StuffList.Count, Is.EqualTo(2));
 		}
+
+		[Test]
+		public void DefaultSerializerCanUsePrivateSetters()
+		{
+
+			INetworkSerializerFactory factory = new DefaultSerializerFactory();
+
+			DefaultSerializer serializer = new DefaultSerializer(typeof(NetworkTestMessageWithPrivateSetter), new TypeConverterRepository(), factory);
+			NetworkTestMessageWithPrivateSetter msg = new NetworkTestMessageWithPrivateSetter(45);
+			BinaryBlobPool pool = new BinaryBlobPool(10, 128);
+			BinaryBlob blob = pool.GetBlob();
+			serializer.Serialize(blob, msg);
+
+			blob.JumpIndexToBegin();
+			NetworkTestMessageWithPrivateSetter msg2 = (NetworkTestMessageWithPrivateSetter)serializer.Deserialize(blob);
+
+			Assert.That(msg2, Is.Not.Null);
+			Assert.That(msg2.Int2Prop, Is.EqualTo(45));
+	
+		}
+
 	}
 }

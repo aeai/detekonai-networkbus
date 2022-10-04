@@ -53,7 +53,7 @@ namespace Detekonai.Networking.Serializer
 			foreach(PropertyInfo prop in props)
 			{
 				MethodInfo getter = prop.GetGetMethod();
-				MethodInfo setter = prop.GetSetMethod();
+				MethodInfo setter = prop.GetSetMethod(true);
 				var getterType = typeof(Func<,>).MakeGenericType(t, getter.ReturnType);
 				var setterType = typeof(Action<,>).MakeGenericType(t, getter.ReturnType);
 				var getterDelegate = Delegate.CreateDelegate(getterType, null, getter);
