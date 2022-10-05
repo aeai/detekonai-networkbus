@@ -25,28 +25,43 @@ namespace Detekonai.Networking.Serializer
         public void Deserialize(object ob, BinaryBlob blob)
         {
             int count = blob.ReadUShort();
-            object[] arr = new object[count];
-            for (ushort i = 0; i < count; i++)
+            if (count == 0)
             {
-                int typeId = blob.ReadUShort();
-                if (repo.TryGetConverter(typeId, out STypeConverter del))
-                {
-                    arr[i] = del.rawReader.Invoke(blob);
-                }
+                setter.Invoke((TT)ob, null);
             }
-            setter.Invoke((TT)ob, arr);
+            else
+            {
+                count--;
+                object[] arr = new object[count];
+                for (ushort i = 0; i < count; i++)
+                {
+                    int typeId = blob.ReadUShort();
+                    if (repo.TryGetConverter(typeId, out STypeConverter del))
+                    {
+                        arr[i] = del.rawReader.Invoke(blob);
+                    }
+                }
+                setter.Invoke((TT)ob, arr);
+            }
         }
 
         public void Serialize(object ob, BinaryBlob blob)
         {
             object[] arr = getter.Invoke((TT)ob);
-            blob.AddUShort((ushort)arr.Length);
-            for (ushort i = 0; i < arr.Length; i++)
+            if (arr == null)
             {
-                if (repo.TryGetConverter(arr[i].GetType(), out STypeConverter del))
+                blob.AddUShort(0);
+            }
+            else
+            {
+                blob.AddUShort((ushort)(arr.Length + 1));
+                for (ushort i = 0; i < arr.Length; i++)
                 {
-                    blob.AddUShort(del.id);
-                    del.rawWriter.Invoke(blob, arr[i]);
+                    if (repo.TryGetConverter(arr[i].GetType(), out STypeConverter del))
+                    {
+                        blob.AddUShort(del.id);
+                        del.rawWriter.Invoke(blob, arr[i]);
+                    }
                 }
             }
         }

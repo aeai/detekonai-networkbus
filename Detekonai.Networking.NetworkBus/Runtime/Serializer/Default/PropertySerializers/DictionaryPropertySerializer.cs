@@ -24,24 +24,39 @@ namespace Detekonai.Networking.Serializer
         public void Deserialize(object owner, BinaryBlob blob)
         {
             ushort count = blob.ReadUShort();
-            T dict = new T();
-            for (int i = 0; i < count; i++)
+            if (count == 0)
             {
-                K key = (K)keySerializer.Deserialize(blob);
-                V value = (V)valueSerializer.Deserialize(blob);
-                dict[key] = value;
+                setterFunc.Invoke((TT)owner, null);
             }
-            setterFunc.Invoke((TT)owner, dict);
+            else
+            {
+                count--;
+                T dict = new T();
+                for (int i = 0; i < count; i++)
+                {
+                    K key = (K)keySerializer.Deserialize(blob);
+                    V value = (V)valueSerializer.Deserialize(blob);
+                    dict[key] = value;
+                }
+                setterFunc.Invoke((TT)owner, dict);
+            }
         }
 
         public void Serialize(object ob, BinaryBlob blob)
         {
             T prop = getterFunc.Invoke((TT)ob);
-            blob.AddUShort((ushort)prop.Count());
-            foreach( var d in prop)
+            if (prop == null)
             {
-                keySerializer.Serialize(blob, d.Key);
-                valueSerializer.Serialize(blob, d.Value);
+                blob.AddUShort(0);
+            }
+            else
+            {
+                blob.AddUShort((ushort)(prop.Count() + 1));
+                foreach (var d in prop)
+                {
+                    keySerializer.Serialize(blob, d.Key);
+                    valueSerializer.Serialize(blob, d.Value);
+                }
             }
         }
     }

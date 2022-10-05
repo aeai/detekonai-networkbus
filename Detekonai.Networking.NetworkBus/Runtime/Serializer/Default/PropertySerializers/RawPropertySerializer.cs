@@ -19,20 +19,35 @@ namespace Detekonai.Networking.Serializer
         public void Deserialize(object ob, BinaryBlob blob)
         {
             int typeId = blob.ReadUShort();
-            if (repo.TryGetConverter(typeId, out STypeConverter del))
+            if (typeId == 0)
             {
-                var r = del.rawReader.Invoke(blob);
-                setter.Invoke((TT)ob, r);
+                setter.Invoke((TT)ob, null);
+            }
+            else
+            {
+                typeId--;
+                if (repo.TryGetConverter(typeId, out STypeConverter del))
+                {
+                    var r = del.rawReader.Invoke(blob);
+                    setter.Invoke((TT)ob, r);
+                }
             }
         }
 
         public void Serialize(object ob, BinaryBlob blob)
         {
             var r = getter.Invoke((TT)ob);
-            if (repo.TryGetConverter(r.GetType(), out STypeConverter del))
+            if (r == null)
             {
-                blob.AddUShort(del.id);
-                del.rawWriter.Invoke(blob, r);
+                blob.AddUShort(0);
+            }
+            else
+            {
+                if (repo.TryGetConverter(r.GetType(), out STypeConverter del))
+                {
+                    blob.AddUShort((ushort)(del.id + 1));
+                    del.rawWriter.Invoke(blob, r);
+                }
             }
         }
     }

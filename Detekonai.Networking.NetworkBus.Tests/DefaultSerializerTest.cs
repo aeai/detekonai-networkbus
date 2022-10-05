@@ -79,6 +79,17 @@ namespace Detekonai.Networking.Serializer
 			[NetworkSerializableProperty("struct")]
 			public StructThing structProp { get; set; }
 
+			[NetworkSerializableProperty("structList")]
+			public List<StructThing> structList { get; set; } = new List<StructThing>();
+
+			[NetworkSerializableProperty("structDict")]
+			public Dictionary<string, StructThing> structDict { get; set; }
+
+			[NetworkSerializableProperty("structObj")]
+			public object structObj { get; set; }
+
+			[NetworkSerializableProperty("Raw")]
+			public object[] Raw { get; set; }
 
 			public MessageWithStruct() { }
 		}
@@ -138,9 +149,9 @@ namespace Detekonai.Networking.Serializer
 		}
 
 		[Test]
-		public void Default_serializer_can_serialize_raw_lists()
+		public void Default_serializer_can_serialize_null_objects()
 		{
-			object value = new List<int>() { 1234, 5678 };
+			object value = null;
 
 			INetworkSerializerFactory factory = new DefaultSerializerFactory();
 			BinaryBlobPool pool = new BinaryBlobPool(10, 128);
@@ -154,11 +165,33 @@ namespace Detekonai.Networking.Serializer
 			MessageWithObject msg2 = (MessageWithObject)serializer.Deserialize(blob);
 
 			Assert.That(msg2, Is.Not.Null);
-			List<int> res = (List<int>)msg2.Raw;
 			Assert.That(msg2.StringProp, Is.EqualTo("Test"));
-			Assert.That(res.Count, Is.EqualTo(2));
-			Assert.That(res[0], Is.EqualTo(1234));
-			Assert.That(res[1], Is.EqualTo(5678));
+			Assert.That(msg2.Raw, Is.Null);
+		}
+
+		[Test]
+		public void Default_serializer_can_serialize_raw_lists()
+		{
+			object value = new List<string>() { "alma",null, "korte" };
+
+			INetworkSerializerFactory factory = new DefaultSerializerFactory();
+			BinaryBlobPool pool = new BinaryBlobPool(10, 128);
+
+			DefaultSerializer serializer = new DefaultSerializer(typeof(MessageWithObject), new TypeConverterRepository(), factory);
+
+			MessageWithObject msg = new MessageWithObject() { StringProp = "Test", Raw = value };
+			BinaryBlob blob = pool.GetBlob();
+			serializer.Serialize(blob, msg);
+			blob.JumpIndexToBegin();
+			MessageWithObject msg2 = (MessageWithObject)serializer.Deserialize(blob);
+
+			Assert.That(msg2, Is.Not.Null);
+			List<string> res = (List<string>)msg2.Raw;
+			Assert.That(msg2.StringProp, Is.EqualTo("Test"));
+			Assert.That(res.Count, Is.EqualTo(3));
+			Assert.That(res[0], Is.EqualTo("alma"));
+			Assert.That(res[1], Is.Null);
+			Assert.That(res[2], Is.EqualTo("korte"));
 		}
 
 		[Test]
@@ -207,6 +240,27 @@ namespace Detekonai.Networking.Serializer
 		}
 
 		[Test]
+		public void Default_serializer_can_serialize_null_raw_arrays()
+		{
+			object[] value = null;
+
+			INetworkSerializerFactory factory = new DefaultSerializerFactory();
+			BinaryBlobPool pool = new BinaryBlobPool(10, 128);
+
+			DefaultSerializer serializer = new DefaultSerializer(typeof(MessageWithObjectArray), new TypeConverterRepository(), factory);
+
+			MessageWithObjectArray msg = new MessageWithObjectArray() { StringProp = "Test", Raw = value };
+			BinaryBlob blob = pool.GetBlob();
+			serializer.Serialize(blob, msg);
+			blob.JumpIndexToBegin();
+			MessageWithObjectArray msg2 = (MessageWithObjectArray)serializer.Deserialize(blob);
+
+			Assert.That(msg2, Is.Not.Null);
+			Assert.That(msg2.StringProp, Is.EqualTo("Test"));
+			Assert.That(msg2.Raw, Is.Null);
+		}
+
+		[Test]
 		public void Default_serializer_can_serialize_dictionaries()
 		{
 			Dictionary<int, string> value = new Dictionary<int, string>();
@@ -236,10 +290,30 @@ namespace Detekonai.Networking.Serializer
 		}
 
 		[Test]
-		public void Default_serializer_can_have_custom_serializers()
+		public void Default_serializer_can_serialize_null_dictionaries()
 		{
+			Dictionary<int, string> value = null;
+
 			INetworkSerializerFactory factory = new DefaultSerializerFactory();
 			BinaryBlobPool pool = new BinaryBlobPool(10, 128);
+
+			DefaultSerializer serializer = new DefaultSerializer(typeof(MessageWithDictionary), new TypeConverterRepository(), factory);
+
+			MessageWithDictionary msg = new MessageWithDictionary() { IntStringMap = value };
+			BinaryBlob blob = pool.GetBlob();
+			serializer.Serialize(blob, msg);
+			blob.JumpIndexToBegin();
+			MessageWithDictionary msg2 = (MessageWithDictionary)serializer.Deserialize(blob);
+
+			Assert.That(msg2, Is.Not.Null);
+			Assert.That(msg2.IntStringMap, Is.Null);
+		}
+
+		[Test]
+		public void Default_serializer_can_have_custom_converter()
+		{
+			DefaultSerializerFactory factory = new DefaultSerializerFactory();
+			BinaryBlobPool pool = new BinaryBlobPool(10, 512);
 			var repo = new TypeConverterRepository();
 
 			Action<BinaryBlob, StructThing> writter = (BinaryBlob blob, StructThing st) =>
@@ -254,10 +328,17 @@ namespace Detekonai.Networking.Serializer
 				st.Number = blob.ReadInt();
 				return st;
 			};
-			repo.AddConverter(typeof(StructThing), writter, reader);
-			DefaultSerializer serializer = new DefaultSerializer(typeof(MessageWithStruct), repo, factory);
+			factory.AddCustomConverter(writter, reader);
+			INetworkSerializer serializer = factory.Build(typeof(MessageWithStruct));//new DefaultSerializer(typeof(MessageWithStruct), repo, factory);
 
-			MessageWithStruct msg = new MessageWithStruct() { StringProp = "alma", structProp = new StructThing() { Fruit = "korte", Number = 9 } };
+			MessageWithStruct msg = new MessageWithStruct() { 
+				StringProp = "alma",
+				structProp = new StructThing() { Fruit = "korte", Number = 9 },
+				structList = new List<StructThing>() { new StructThing() { Fruit = "korte", Number = 10 }, new StructThing() { Fruit = "barack", Number = 11 } },
+				structDict = new Dictionary<string, StructThing>() { { "alma", new StructThing() { Fruit = "alma", Number = 12 } } },
+				structObj = new StructThing() { Fruit = "szilva", Number = 13 },
+				Raw = new object[2] { new StructThing() { Fruit = "alma", Number = 14 }, new StructThing() { Fruit = "barack", Number = 15 } }
+			};
 			BinaryBlob blob = pool.GetBlob();
 			serializer.Serialize(blob, msg);
 			blob.JumpIndexToBegin();
@@ -269,6 +350,30 @@ namespace Detekonai.Networking.Serializer
 			Assert.That(msg2.structProp.Fruit, Is.EqualTo("korte"));
 			Assert.That(msg2.structProp.Number, Is.EqualTo(9));
 
+
+			Assert.That(msg2.structObj, Is.Not.Null);
+			Assert.That(((StructThing)msg2.structObj).Fruit, Is.EqualTo("szilva"));
+			Assert.That(((StructThing)msg2.structObj).Number, Is.EqualTo(13));
+
+			Assert.That(msg2.structList, Is.Not.Null);
+			Assert.That(msg2.structList.Count, Is.EqualTo(2));
+			Assert.That(msg2.structList[0].Fruit, Is.EqualTo("korte"));
+			Assert.That(msg2.structList[0].Number, Is.EqualTo(10));
+			Assert.That(msg2.structList[1].Fruit, Is.EqualTo("barack"));
+			Assert.That(msg2.structList[1].Number, Is.EqualTo(11));
+
+			Assert.That(msg2.structDict, Is.Not.Null);
+			Assert.That(msg2.structDict.Count, Is.EqualTo(1));
+			Assert.That(msg2.structDict["alma"].Fruit, Is.EqualTo("alma"));
+			Assert.That(msg2.structDict["alma"].Number, Is.EqualTo(12));
+
+
+			Assert.That(msg2.Raw, Is.Not.Null);
+			Assert.That(msg2.Raw.Length, Is.EqualTo(2));
+			Assert.That(((StructThing)msg2.Raw[0]).Fruit, Is.EqualTo("alma"));
+			Assert.That(((StructThing)msg2.Raw[0]).Number, Is.EqualTo(14));
+			Assert.That(((StructThing)msg2.Raw[1]).Fruit, Is.EqualTo("barack"));
+			Assert.That(((StructThing)msg2.Raw[1]).Number, Is.EqualTo(15));
 		}
 
 		[Test]

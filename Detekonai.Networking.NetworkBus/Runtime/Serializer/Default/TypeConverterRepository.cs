@@ -38,9 +38,18 @@ namespace Detekonai.Networking.Serializer
 			return false;
 		}
 
-		public void AddConverter(Type type, Delegate writer, Delegate reader)
+		public void AddConverter<T>(Action<BinaryBlob, T> writer, Func<BinaryBlob, T> reader)
 		{
-			converters[type] = new STypeConverter { writer = writer, reader = reader };
+			converters[typeof(T)] = new STypeConverter { 
+				writer = writer,
+				reader = reader,
+				rawWriter = (BinaryBlob blob, object ob) => {
+					writer.Invoke(blob, (T)ob);
+				},
+				rawReader = (BinaryBlob blob) => { return reader.Invoke(blob); },
+				id = (ushort)typeList.Count,
+			};
+			typeList.Add(typeof(T));
 		}
 
 		public TypeConverterRepository()
@@ -101,7 +110,7 @@ namespace Detekonai.Networking.Serializer
 				writer = w,
 				reader = r,
 				id = (ushort)typeList.Count,
-			rawWriter = (BinaryBlob blob, object ob) => {
+				rawWriter = (BinaryBlob blob, object ob) => {
 					((Action<BinaryBlob, List<T>>)w).Invoke(blob, (List<T>)ob);
 				},
 				rawReader = (BinaryBlob blob) => { return ((Func<BinaryBlob, List<T>>)r).Invoke(blob); },

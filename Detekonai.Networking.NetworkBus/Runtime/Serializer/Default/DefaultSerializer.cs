@@ -104,7 +104,7 @@ namespace Detekonai.Networking.Serializer
 			if (typeof(ICollection).IsAssignableFrom(type))
 			{
 				Type[] tp = type.GenericTypeArguments;
-				if (tp.Length == 1 && tp[0].GetCustomAttribute<NetworkSerializableAttribute>() != null)
+				if (tp.Length == 1)
 				{
 					return tp[0];
 				}
@@ -124,21 +124,29 @@ namespace Detekonai.Networking.Serializer
 				return (IPropertySerializer)Activator.CreateInstance(ser, new object[] { getterDelegate, setterDelegate, typeRepo });
 			}
 			NetworkSerializableAttribute gnab = type.GetCustomAttribute<NetworkSerializableAttribute>();
-			if (gnab == null)
+			INetworkSerializer pser = serFactory.Get(type);
+			if (pser == null)
 			{
-				var ser = typeof(PropertySerializer<,>).MakeGenericType(ownerType, type);
-				if (typeRepo.TryGetConverter(type, out STypeConverter conv))
-				{
-					return (IPropertySerializer)Activator.CreateInstance(ser, new object[] { getterDelegate, setterDelegate, conv.writer, conv.reader });
+				if(gnab == null)
+                {
+					var ser = typeof(PropertySerializer<,>).MakeGenericType(ownerType, type);
+					if (typeRepo.TryGetConverter(type, out STypeConverter conv))
+					{
+						return (IPropertySerializer)Activator.CreateInstance(ser, new object[] { getterDelegate, setterDelegate, conv.writer, conv.reader });
+					}
+					else
+                    {
+						return null;
+                    }
+				}
+				else
+                {
+					pser = serFactory.Build(type);
 				}
 			}
-			else
-			{
-				var ser = typeof(NetworkEventPropertySerializer<,>).MakeGenericType(ownerType, type);
-				INetworkSerializer pser = serFactory.Build(type);
-				return (IPropertySerializer)Activator.CreateInstance(ser, new object[] { getterDelegate, setterDelegate, pser });
-			}
-			return null;
+
+			var serType = typeof(NetworkEventPropertySerializer<,>).MakeGenericType(ownerType, type);
+			return (IPropertySerializer)Activator.CreateInstance(serType, new object[] { getterDelegate, setterDelegate, pser });
 		}
 
 		public object Deserialize(BinaryBlob blob)
