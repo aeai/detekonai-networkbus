@@ -8,6 +8,7 @@ namespace Detekonai.Networking.Serializer
 	{
 		private TypeConverterRepository converter = new TypeConverterRepository();
 		private Dictionary<Type, INetworkSerializer> serializers = new Dictionary<Type, INetworkSerializer>();
+		private readonly Dictionary<uint, INetworkSerializer> serializersByHash = new Dictionary<uint, INetworkSerializer>();
 
 		public void AddCustomConverter<T>(Action<BinaryBlob, T> writer, Func<BinaryBlob, T> reader)
 		{
@@ -27,6 +28,7 @@ namespace Detekonai.Networking.Serializer
 					ser = new DefaultSerializer(type, converter, this);
                 }
 				serializers[type] = ser;
+				serializersByHash[ser.ObjectId] = ser;
 			}
 			return ser;
 		}
@@ -38,6 +40,12 @@ namespace Detekonai.Networking.Serializer
 				return ser;
             }
 			return null;
+		}
+
+        public INetworkSerializer Get(uint id)
+        {
+			serializersByHash.TryGetValue(id, out INetworkSerializer res);
+			return res;
 		}
     }
 }

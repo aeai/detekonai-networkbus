@@ -11,8 +11,8 @@ namespace Detekonai.Networking
 	public class NetworkSerializablePropertyAttribute : Attribute
 	{
         public string Name { get; }
-
-		public NetworkSerializablePropertyAttribute([CallerMemberName] string name = null)
+        public bool Virtual { get; set; } = false;
+        public NetworkSerializablePropertyAttribute([CallerMemberName] string name = null)
         {
             Name = name;
         }
