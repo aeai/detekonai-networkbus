@@ -8,11 +8,16 @@ namespace Detekonai.Networking.Serializer.Experimental
 {
     public class CompositeNetworkSerializerFactory : INetworkSerializerFactory
     {
-        private readonly INetworkSerializerFactory[] factories;
+        private readonly List<INetworkSerializerFactory> factories = new List<INetworkSerializerFactory>();
 
-        public CompositeNetworkSerializerFactory(params INetworkSerializerFactory[] factories )
+        public CompositeNetworkSerializerFactory(params INetworkSerializerFactory[] factories)
         {
-            this.factories = factories;
+            this.factories.AddRange(factories);
+        }
+        public CompositeNetworkSerializerFactory AddFactory(params INetworkSerializerFactory[] factories)
+        {
+            this.factories.AddRange(factories);
+            return this;
         }
 
         public INetworkSerializer Build(Type type)
