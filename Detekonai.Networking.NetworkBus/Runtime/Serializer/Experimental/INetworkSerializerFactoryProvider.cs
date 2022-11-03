@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Detekonai.Networking.NetworkBus.Runtime.Serializer.Experimental
+namespace Detekonai.Networking.Serializer.Experimental
 {
     public interface INetworkSerializerFactoryProvider
     {
