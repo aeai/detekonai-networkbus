@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Detekonai.Networking.Serializer.Experimental
 {
@@ -25,7 +22,7 @@ namespace Detekonai.Networking.Serializer.Experimental
             foreach (var factory in factories)
             {
                 var res = factory.Build(type);
-                if(res != null)
+                if (res != null)
                 {
                     return res;
                 }

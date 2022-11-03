@@ -39,7 +39,10 @@ namespace Detekonai.Networking.CodeGenerator
                         }
                         else
                         {
-                            Serializables[classDeclarationSemantics] = inheritanceList;
+                            if (!classDeclarationSemantics.IsAbstract) 
+							{
+									Serializables[classDeclarationSemantics] = inheritanceList;
+							}
                             break;
                         }
                     }
@@ -72,7 +75,7 @@ namespace Detekonai.Networking.CodeGenerator
 						}}
 						else
 						{{
-							INetworkSerializer oser = owner.Get({s}.GetType());
+							INetworkSerializer oser = owner.Factory.Get({s}.GetType());
 							if(oser != null)
 							{{
 								blob.AddUInt(oser.ObjectId);
@@ -111,7 +114,7 @@ namespace Detekonai.Networking.CodeGenerator
 			{ "object", (string s) => $@"
 										{{
 											uint id = blob.ReadUInt();
-											var ser = owner.Get(id);
+											var ser = owner.Factory.Get(id);
 											if(ser != null)
 											{{
 												{s} = ser.Deserialize(blob);
@@ -163,8 +166,8 @@ namespace Detekonai.Networking.CodeGenerator
 							public uint ObjectId {{ get; }} = {GenerateId(fullName)};
 							public Type SerializedType {{ get; }} = typeof({fullName});
 							public int RequiredSize {{ get; }} = 0;
-							private INetworkSerializerFactory owner;
-							public {target.Name}Serializer(INetworkSerializerFactory factory)
+							private INetworkSerializerFactoryProvider owner;
+							public {target.Name}Serializer(INetworkSerializerFactoryProvider factory)
 							{{
 								owner = factory;
 							}}
@@ -202,31 +205,6 @@ namespace Detekonai.Networking.CodeGenerator
 		}
 		private bool SerializeProperty(StringBuilder sb, ITypeSymbol type, string name, SerializerFinder finder, bool virt)
 		{
-			if (type is INamedTypeSymbol named && finder.Serializables.TryGetValue(named, out List<INamedTypeSymbol> list))
-			{
-				if (virt)
-				{
-					sb.AppendLine($@"
-						INetworkSerializer ser;
-						if({name} == null)
-						{{
-							ser = owner.Get(typeof({named.ToDisplayString()}));
-						}}
-						else
-						{{
-							ser = owner.Get({name}.GetType());
-						}}
-						blob.AddUInt(ser.ObjectId);
-						ser.Serialize(blob, {name});
-					");
-				}
-				else
-				{
-					sb.AppendLine($"owner.Get(typeof({named.ToDisplayString()})).Serialize(blob, {name});");
-				}
-
-				return true;
-			}
             var collection = type.AllInterfaces.Where(x => x.ContainingSymbol?.ToDisplayString() == "System.Collections.Generic" && x.Name == "ICollection").FirstOrDefault();
 			if (collection != null)
 			{
@@ -282,6 +260,44 @@ namespace Detekonai.Networking.CodeGenerator
 				sb.AppendLine(val(name));
 				return true;
 			}
+			else if (type is INamedTypeSymbol named)
+			{
+				if (virt)
+				{
+					sb.AppendLine($@"
+						{{
+							INetworkSerializer ser;
+							if({name} == null)
+							{{
+								ser = owner.Factory.Get(typeof({named.ToDisplayString()}));
+							}}
+							else
+							{{
+								ser = owner.Factory.Get({name}.GetType());
+							}}
+							if(ser != null)
+							{{
+								blob.AddUInt(ser.ObjectId);
+								ser.Serialize(blob, {name});
+							}}
+						}}
+					");
+				}
+				else
+				{
+					sb.AppendLine($@"
+							{{
+							INetworkSerializer ser = owner.Factory.Get(typeof({named.ToDisplayString()}));
+							if(ser != null)
+							{{
+								ser.Serialize(blob, {name});
+							}}
+							}}
+					");
+				}
+
+				return true;
+			}
 			else
 			{
 				sb.AppendLine($"//Missing: {type.ToDisplayString()} {name}");
@@ -298,19 +314,6 @@ namespace Detekonai.Networking.CodeGenerator
 		}
 		private bool  DeserializeProperty(StringBuilder sb, ITypeSymbol type, string name, SerializerFinder finder, bool virt)
 		{
-			if (type is INamedTypeSymbol named && finder.Serializables.TryGetValue(named, out List<INamedTypeSymbol> list))
-			{
-				if (virt)
-				{
-					sb.AppendLine($"{name} = ({named.ToDisplayString()})owner.Get(blob.ReadUInt()).Deserialize(blob);");
-					//sb.AppendLine($"{name} = ({named.ToDisplayString()})owner.Get({name}.GetType()).Deserialize(blob);");
-				}
-                else
-				{ 
-					sb.AppendLine($"{name} = ({named.ToDisplayString()})owner.Get(typeof({named.ToDisplayString()})).Deserialize(blob);");
-				}
-				return true;
-			}
             var collection = type.AllInterfaces.Where(x => x.ContainingSymbol?.ToDisplayString() == "System.Collections.Generic" && x.Name == "ICollection").FirstOrDefault();
             if (collection != null)
             {
@@ -403,12 +406,29 @@ namespace Detekonai.Networking.CodeGenerator
 				sb.AppendLine(val(name));
 				return true;
 			}
+			if (type is INamedTypeSymbol named && finder.Serializables.TryGetValue(named, out List<INamedTypeSymbol> list))
+			{
+				//todo exception or something if ser is not found
+				if (virt)
+				{
+					sb.AppendLine($"{name} = ({named.ToDisplayString()})owner.Factory.Get(blob.ReadUInt()).Deserialize(blob);");
+				}
+				else
+				{
+					sb.AppendLine($"{name} = ({named.ToDisplayString()})owner.Factory.Get(typeof({named.ToDisplayString()})).Deserialize(blob);");
+				}
+				return true;
+			}
 			return false;
 		}
 
 		public void Execute(GeneratorExecutionContext context)
 		{
 			SerializerFinder finder = (SerializerFinder)context!.SyntaxContextReceiver;
+			if(finder.Serializables.Count == 0)
+            {
+				return;
+            }
 			string name = Regex.Replace(context.Compilation.Assembly.Name, @"\.+", "");
 			//context.Compilation.AssemblyName
 			var sourceBuilder = new StringBuilder(@$"
@@ -419,15 +439,16 @@ namespace Detekonai.Networking.CodeGenerator
 
 					namespace Detekonai.Networking.Serializer.Experimental
 			            {{
-			                public  class {name}SerializerFactory : AbstractNetworkSerializerFactory
+			                public  class {name}SerializerFactory : AbstractNetworkSerializerFactory, INetworkSerializerFactoryProvider
 			                {{
+								public INetworkSerializerFactory Factory {{get;set;}}
 					public void Dump(){{
 
 			            ");
-				
-            //var messages = GetSerializbles(context.Compilation);
-            //HashSet<string> propertyTypes = new HashSet<string>();
-            //go through all network messages
+			sourceBuilder.AppendLine($"//finder count:{finder.Serializables.Count}");
+			//var messages = GetSerializbles(context.Compilation);
+			//HashSet<string> propertyTypes = new HashSet<string>();
+			//go through all network messages
 			foreach (var serializable in finder.Serializables)
 			{
 				sourceBuilder.AppendLine($"Logger.Log(this, \"{serializable.Key}\");");
