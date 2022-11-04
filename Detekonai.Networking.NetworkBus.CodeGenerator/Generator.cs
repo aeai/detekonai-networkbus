@@ -423,7 +423,7 @@ namespace Detekonai.Networking.CodeGenerator
 				sb.AppendLine(val(name));
 				return true;
 			}
-			if (type is INamedTypeSymbol named && finder.Serializables.TryGetValue(named, out List<INamedTypeSymbol> list))
+			if (type is INamedTypeSymbol named)
 			{
 				//todo exception or something if ser is not found
 				if (virt)
