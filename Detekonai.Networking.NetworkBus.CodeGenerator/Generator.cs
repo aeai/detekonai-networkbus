@@ -429,7 +429,7 @@ namespace Detekonai.Networking.CodeGenerator
             {
 				return;
             }
-			string name = Regex.Replace(context.Compilation.Assembly.Name, @"[\.\-\_]+", "");
+			string name = Regex.Replace(context.Compilation.Assembly.Name, @"[\.\-_]+", "");
 			//context.Compilation.AssemblyName
 			var sourceBuilder = new StringBuilder(@$"
 					using System;
