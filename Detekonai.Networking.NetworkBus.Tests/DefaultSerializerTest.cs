@@ -29,7 +29,7 @@ namespace Detekonai.Networking.Serializer
 			}
 		}
 
-		[NetworkSerializable]
+		[NetworkSerializable(SizeRequirement = 32)]
 		public class InheritTest : NetworkTestMessage
 		{
 			[NetworkSerializableProperty("Boo")]
@@ -432,7 +432,7 @@ namespace Detekonai.Networking.Serializer
 			Assert.That(((StructThing)msg2.Raw[1]).Fruit, Is.EqualTo("barack"));
 			Assert.That(((StructThing)msg2.Raw[1]).Number, Is.EqualTo(15));
 		}
-		private class Logger : ILogger
+		public class Logger : ILogger
 		{
 			public void Log(object sender, string msg, ILogger.LogLevel level = ILogger.LogLevel.Verbose, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
 			{

@@ -17,7 +17,7 @@ namespace Detekonai.Networking.CodeGenerator
    //class SerializerFinder : ISyntaxReceiver
 	{
 		public Dictionary<INamedTypeSymbol, List<INamedTypeSymbol>> Serializables { get; } = new Dictionary<INamedTypeSymbol, List<INamedTypeSymbol>>(SymbolEqualityComparer.Default);
-        public void OnVisitSyntaxNode(GeneratorSyntaxContext context)
+		public void OnVisitSyntaxNode(GeneratorSyntaxContext context)
         {
             if (context.Node is ClassDeclarationSyntax classDeclarationSyntax)
             {
@@ -33,15 +33,17 @@ namespace Detekonai.Networking.CodeGenerator
                     }
                     while (inheritanceList.Count > 0)
                     {
-                        if (!inheritanceList.Last().GetAttributes().Any(x => x.AttributeClass.ToDisplayString() == "Detekonai.Networking.NetworkSerializableAttribute"))
-                        {
+
+						if (!inheritanceList.Last().GetAttributes().Any(x => x.AttributeClass.ToDisplayString() == "Detekonai.Networking.NetworkSerializableAttribute"))
+						{
                             inheritanceList.Remove(inheritanceList.Last());
                         }
                         else
                         {
+
                             if (!classDeclarationSemantics.IsAbstract) 
 							{
-									Serializables[classDeclarationSemantics] = inheritanceList;
+								Serializables[classDeclarationSemantics] = inheritanceList;
 							}
                             break;
                         }
@@ -159,13 +161,28 @@ namespace Detekonai.Networking.CodeGenerator
 		{
 			INamedTypeSymbol target = inheritanceList.First();
 			string fullName = target.ToDisplayString();
+			int size = 0;
+            foreach (var itm in inheritanceList)
+            {
 
-			sb.Append($@"
+                var adata = itm.GetAttributes().Where(x => x.AttributeClass.ToDisplayString() == "Detekonai.Networking.NetworkSerializableAttribute").FirstOrDefault();
+                if (adata != null && adata.NamedArguments != null)
+                {
+                    var avalue = adata.NamedArguments.Where(x => x.Key == "SizeRequirement").FirstOrDefault().Value.Value;
+                    size = avalue != null ? (int)avalue : 0;
+                    break;
+                }
+            }
+
+
+
+
+            sb.Append($@"
 				private class {target.Name}Serializer : INetworkSerializer
 				{{
 							public uint ObjectId {{ get; }} = {GenerateId(fullName)};
 							public Type SerializedType {{ get; }} = typeof({fullName});
-							public int RequiredSize {{ get; }} = 0;
+							public int RequiredSize {{ get; }} = {size};
 							private INetworkSerializerFactoryProvider owner;
 							public {target.Name}Serializer(INetworkSerializerFactoryProvider factory)
 							{{

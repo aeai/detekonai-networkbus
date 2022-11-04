@@ -222,8 +222,15 @@ namespace Detekonai.Networking
 					LogConnector?.Log(this, $"Type {t} is registered to NetworkBus {Name} for serialization.");
                 }
 				INetworkSerializer ser = factory.Build(t);
-				serializers[t] = ser;
-                serializersByHash[ser.ObjectId] = ser;
+				if(ser != null)
+                {
+					serializers[t] = ser;
+					serializersByHash[ser.ObjectId] = ser;
+                }
+				else
+                {
+					LogConnector?.Log(this, $"Type {t} don't have a serializer!!", LogLevel.Error);
+				}
 			}
 		}
 
