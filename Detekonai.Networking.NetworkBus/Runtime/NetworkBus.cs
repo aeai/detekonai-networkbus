@@ -123,9 +123,20 @@ namespace Detekonai.Networking
 
 		public UniversalAwaitable<BaseMessage> SendRPC(NetworkMessage msg, CancellationToken token)
         {
+			UniversalAwaitable<ICommResponse> res = null;
 			BinaryBlob blob = Serialize(msg);
-			UniversalAwaitable<ICommResponse> res = channel.SendRPC(blob, token);
-			return new UniversalAwaitable<BaseMessage>(new MessageAwaiter(this, res.GetAwaiter()));
+			try
+            {
+				res = channel.SendRPC(blob, token);
+				return new UniversalAwaitable<BaseMessage>(new MessageAwaiter(this, res.GetAwaiter()));
+            }
+			finally
+            {
+				if(res == null)
+                {
+					blob.Release();
+                }
+            }
 		}
 
 
