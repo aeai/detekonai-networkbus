@@ -23,7 +23,8 @@ namespace Detekonai.Networking.Serializer.Experimental
 			{ typeof(ushort),   (BinaryBlob blob, object s) => {blob.AddUInt(8); blob.AddUShort((ushort)s)	;}},
 			{ typeof(float),    (BinaryBlob blob, object s) => {blob.AddUInt(9); blob.AddSingle((float)s);  ;}},
 			{ typeof(System.TimeSpan),          (BinaryBlob blob, object s) => {blob.AddUInt(10); blob.AddLong(((TimeSpan)s).Ticks); } },
-			{ typeof(System.DateTimeOffset),    (BinaryBlob blob, object s) => {blob.AddUInt(11); blob.AddLong(((DateTimeOffset)s).UtcTicks); } }
+			{ typeof(System.DateTimeOffset),    (BinaryBlob blob, object s) => {blob.AddUInt(11); blob.AddLong(((DateTimeOffset)s).UtcTicks); } },
+			{ typeof(bool),    (BinaryBlob blob, object s) => {blob.AddUInt(12); blob.AddBoolean((bool)s);  ;}}
 		};
 
 		private static Dictionary<uint, Type> primitiveIdMap = new Dictionary<uint, Type>(){
@@ -37,7 +38,8 @@ namespace Detekonai.Networking.Serializer.Experimental
 			{8, typeof(ushort)},
 			{9, typeof(float)},
 			{10, typeof(System.TimeSpan)},
-			{11, typeof(System.DateTimeOffset)}
+			{11, typeof(System.DateTimeOffset)},
+			{12, typeof(bool)}
 		};
 
 		private static Dictionary<Type, Func<BinaryBlob, object>> dynamicDeserializerMap = new Dictionary<Type, Func<BinaryBlob, object>>(){
@@ -51,7 +53,8 @@ namespace Detekonai.Networking.Serializer.Experimental
 			{ typeof(ushort),   (BinaryBlob blob) => blob.ReadUShort() },
 			{ typeof(float),    (BinaryBlob blob) => blob.ReadSingle() },
 			{ typeof(System.TimeSpan),          (BinaryBlob blob) => TimeSpan.FromTicks(blob.ReadLong()) },
-			{ typeof(System.DateTimeOffset),    (BinaryBlob blob) => new DateTimeOffset(blob.ReadLong(), TimeSpan.Zero) }
+			{ typeof(System.DateTimeOffset),    (BinaryBlob blob) => new DateTimeOffset(blob.ReadLong(), TimeSpan.Zero) },
+			{ typeof(bool),    (BinaryBlob blob) => blob.ReadBoolean() }
 		};
 
 		public static Func<BinaryBlob, object> GetObjectDeserializer(uint id)

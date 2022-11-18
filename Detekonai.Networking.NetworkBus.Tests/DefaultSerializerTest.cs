@@ -44,6 +44,9 @@ namespace Detekonai.Networking.Serializer
 			[NetworkSerializableProperty("Int")]
 			public int IntProp { get; set; }
 
+			[NetworkSerializableProperty("Bool")]
+			public bool BoolProp { get; set; }
+
 			[NetworkSerializableProperty("ULong")]
 			public ulong UlongProp { get; set; }
 
@@ -462,6 +465,7 @@ namespace Detekonai.Networking.Serializer
 			NetworkTestMessage msg = new NetworkTestMessage();
 			msg.StringProp = "alma";
 			msg.IntProp = 1234;
+			msg.BoolProp = true;
 			msg.UlongProp = 45;
 			msg.TimeSpanProp = TimeSpan.FromSeconds(45);
 			DateTimeOffset now = DateTimeOffset.Now;
@@ -490,6 +494,7 @@ namespace Detekonai.Networking.Serializer
 			Assert.That(msg2.Stuff.Fruit, Is.EqualTo("alma"));
 			Assert.That(msg2.Stuff.Number, Is.EqualTo(12));
 			Assert.That(msg2.StuffList.Count, Is.EqualTo(2));
+			Assert.That(msg2.BoolProp, Is.EqualTo(true));
 		}
 
 		[Test]

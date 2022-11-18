@@ -68,6 +68,8 @@ namespace Detekonai.Networking.CodeGenerator
 			{ "short", (string s) => $"blob.AddShort({s});" },
 			{ "ushort", (string s) => $"blob.AddUShort({s});" },
 			{ "float", (string s) => $"blob.AddSingle({s});" },
+			{ "bool", (string s) => $"blob.AddBoolean({s});" },
+			{ "Boolean", (string s) => $"blob.AddBoolean({s});" },
 			{ "System.TimeSpan", (string s) => $"blob.AddLong({s}.Ticks);" },
 			{ "System.DateTimeOffset", (string s) => $"blob.AddLong({s}.UtcTicks);" },
 			{ "object", (string s) => $@"{{
@@ -111,6 +113,8 @@ namespace Detekonai.Networking.CodeGenerator
 			{ "short", (string s) => $"{s} = blob.ReadShort();" },
 			{ "ushort", (string s) => $"{s} = blob.ReadUShort();" },
 			{ "float", (string s) => $"{s} = blob.ReadSingle();" },
+			{ "bool", (string s) => $"{s} = blob.ReadBoolean();" },
+			{ "Boolean", (string s) => $"{s} = blob.ReadBoolean();" },
 			{ "System.TimeSpan", (string s) => $"{s} = TimeSpan.FromTicks(blob.ReadLong());" },
 			{ "System.DateTimeOffset", (string s) => $"{s} = new DateTimeOffset(blob.ReadLong(), TimeSpan.Zero);" },
 			{ "object", (string s) => $@"
@@ -509,7 +513,7 @@ namespace Detekonai.Networking.CodeGenerator
 							public {name}SerializerFactory(ILogger logger)
 							{{
 								Logger = logger;
-
+								Factory = this; //default factory is us, this is only useful in single assembly projects
 			");
 			foreach (var serializable in finder.Serializables)
 			{

@@ -7,7 +7,7 @@
 		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
 		<CompilerGeneratedFilesOutputPath>Generated</CompilerGeneratedFilesOutputPath>
 		<IsRoslynComponent>true</IsRoslynComponent>
-		<Version>0.0.5</Version>
+		<Version>0.0.6</Version>
 		<Authors>Aeai</Authors>
 		<Company>Detekonai</Company>
 		<Copyright>Copyright (c) 2021 Erik Takakura-Zajac</Copyright>
