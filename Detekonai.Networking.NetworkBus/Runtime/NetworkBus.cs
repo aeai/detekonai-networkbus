@@ -86,8 +86,10 @@ namespace Detekonai.Networking
 			BinaryBlob blob = await Serialize(msg);
 			try
             {
-				res = await channel.SendRPC(blob, token);
-				return Deserialize(res.Blob);
+				using (res = await channel.SendRPC(blob, token))
+                {
+					return Deserialize(res.Blob);
+                }
 			}
 			finally
             {
