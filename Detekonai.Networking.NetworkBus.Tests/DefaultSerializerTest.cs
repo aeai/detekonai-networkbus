@@ -184,7 +184,7 @@ namespace Detekonai.Networking.Serializer
 
 			BinaryBlobPool pool = new BinaryBlobPool(10, 128);
 
-			INetworkSerializer serializer = factory.Build(typeof(MessageWithSomethingInherited));
+			INetworkSerializer serializer = factory.Get(typeof(MessageWithSomethingInherited));
 			MessageWithSomethingInherited msg = new MessageWithSomethingInherited() { StringProp = "Test", Obj = new ChildThing1() { intProp = 515} };
 			BinaryBlob blob = pool.GetBlob();
 			serializer.Serialize(blob, msg);
@@ -205,7 +205,7 @@ namespace Detekonai.Networking.Serializer
 
 			BinaryBlobPool pool = new BinaryBlobPool(10, 128);
 
-			INetworkSerializer serializer = factory.Build(typeof(MessageWithObject));
+			INetworkSerializer serializer = factory.Get(typeof(MessageWithObject));
 			MessageWithObject msg = new MessageWithObject() { StringProp = "Test", Raw = value };
 			BinaryBlob blob = pool.GetBlob();
 			serializer.Serialize(blob, msg);
@@ -225,7 +225,7 @@ namespace Detekonai.Networking.Serializer
 
 			BinaryBlobPool pool = new BinaryBlobPool(10, 128);
 
-			INetworkSerializer serializer = factory.Build(typeof(MessageWithObject));
+			INetworkSerializer serializer = factory.Get(typeof(MessageWithObject));
 			MessageWithObject msg = new MessageWithObject() { StringProp = "Test", Raw = value };
 			BinaryBlob blob = pool.GetBlob();
 			serializer.Serialize(blob, msg);
@@ -245,7 +245,7 @@ namespace Detekonai.Networking.Serializer
 
 			BinaryBlobPool pool = new BinaryBlobPool(10, 128);
 
-			INetworkSerializer serializer = factory.Build(typeof(MessageWithObject));
+			INetworkSerializer serializer = factory.Get(typeof(MessageWithObject));
 			MessageWithObject msg = new MessageWithObject() { StringProp = "Test", Raw = value };
 			BinaryBlob blob = pool.GetBlob();
 			serializer.Serialize(blob, msg);
@@ -269,7 +269,7 @@ namespace Detekonai.Networking.Serializer
 
 			BinaryBlobPool pool = new BinaryBlobPool(10, 128);
 
-			INetworkSerializer serializer = factory.Build(typeof(MessageWithObjectArray));
+			INetworkSerializer serializer = factory.Get(typeof(MessageWithObjectArray));
 			MessageWithObjectArray msg = new MessageWithObjectArray() { StringProp = "Test", Raw = value };
 			BinaryBlob blob = pool.GetBlob();
 			serializer.Serialize(blob, msg);
@@ -292,7 +292,7 @@ namespace Detekonai.Networking.Serializer
 
 			BinaryBlobPool pool = new BinaryBlobPool(10, 128);
 
-			INetworkSerializer serializer = factory.Build(typeof(MessageWithObjectArray));
+			INetworkSerializer serializer = factory.Get(typeof(MessageWithObjectArray));
 			MessageWithObjectArray msg = new MessageWithObjectArray() { StringProp = "Test", Raw = value };
 			BinaryBlob blob = pool.GetBlob();
 			serializer.Serialize(blob, msg);
@@ -312,7 +312,7 @@ namespace Detekonai.Networking.Serializer
 
 			BinaryBlobPool pool = new BinaryBlobPool(10, 128);
 
-			INetworkSerializer serializer = factory.Build(typeof(MessageWithObjectArray));
+			INetworkSerializer serializer = factory.Get(typeof(MessageWithObjectArray));
 			MessageWithObjectArray msg = new MessageWithObjectArray() { StringProp = "Test", Raw = value };
 			BinaryBlob blob = pool.GetBlob();
 			serializer.Serialize(blob, msg);
@@ -335,7 +335,7 @@ namespace Detekonai.Networking.Serializer
 
 			BinaryBlobPool pool = new BinaryBlobPool(10, 128);
 
-			INetworkSerializer serializer = factory.Build(typeof(MessageWithDictionary));
+			INetworkSerializer serializer = factory.Get(typeof(MessageWithDictionary));
 			MessageWithDictionary msg = new MessageWithDictionary() { IntStringMap = value };
 			BinaryBlob blob = pool.GetBlob();
 			serializer.Serialize(blob, msg);
@@ -360,7 +360,7 @@ namespace Detekonai.Networking.Serializer
 
 			BinaryBlobPool pool = new BinaryBlobPool(10, 128);
 
-			INetworkSerializer serializer = factory.Build(typeof(MessageWithDictionary));
+			INetworkSerializer serializer = factory.Get(typeof(MessageWithDictionary));
 			MessageWithDictionary msg = new MessageWithDictionary() { IntStringMap = value };
 			BinaryBlob blob = pool.GetBlob();
 			serializer.Serialize(blob, msg);
@@ -389,7 +389,7 @@ namespace Detekonai.Networking.Serializer
 				return st;
 			};
 			factory.AddCustomConverter(writter, reader);
-			INetworkSerializer serializer = factory.Build(typeof(MessageWithStruct));
+			INetworkSerializer serializer = factory.Get(typeof(MessageWithStruct));
 
 			MessageWithStruct msg = new MessageWithStruct() { 
 				StringProp = "alma",
@@ -461,7 +461,7 @@ namespace Detekonai.Networking.Serializer
 		{
 
 
-			INetworkSerializer serializer = factory.Build(typeof(NetworkTestMessage));
+			INetworkSerializer serializer = factory.Get(typeof(NetworkTestMessage));
 			NetworkTestMessage msg = new NetworkTestMessage();
 			msg.StringProp = "alma";
 			msg.IntProp = 1234;
@@ -502,7 +502,7 @@ namespace Detekonai.Networking.Serializer
 		public void DefaultSerializerCanUsePrivateSetters(INetworkSerializerFactory factory)
 		{
 
-			INetworkSerializer serializer = factory.Build(typeof(NetworkTestMessageWithPrivateSetter));
+			INetworkSerializer serializer = factory.Get(typeof(NetworkTestMessageWithPrivateSetter));
 			NetworkTestMessageWithPrivateSetter msg = new NetworkTestMessageWithPrivateSetter(45);
 			BinaryBlobPool pool = new BinaryBlobPool(10, 128);
 			BinaryBlob blob = pool.GetBlob();

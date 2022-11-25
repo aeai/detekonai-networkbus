@@ -21,7 +21,7 @@ namespace Detekonai.Networking.Serializer
 
 		public int RequiredSize { get; private set; } = 0;
 
-		public DefaultSerializer(Type type, ITypeConverterRepository typeConverterRepo, INetworkSerializerFactory factory)
+		public DefaultSerializer(Type type, ITypeConverterRepository typeConverterRepo, DefaultSerializerFactory factory)
 		{
 			typeRepo = typeConverterRepo;
 			SerializedType = type;
@@ -35,20 +35,27 @@ namespace Detekonai.Networking.Serializer
             }
 		}
 
-		private void Initialize(Type t, INetworkSerializerFactory serFactory)
+		private void Initialize(Type t, DefaultSerializerFactory serFactory)
 		{
 			var props = t.GetProperties().Where(p => p.IsDefined(typeof(NetworkSerializablePropertyAttribute))).OrderBy(x => x.GetCustomAttribute<NetworkSerializablePropertyAttribute>().Name);
 			byte[] data = new byte[512];
 			NetworkSerializableAttribute nab = t.GetCustomAttribute<NetworkSerializableAttribute>();
 			string fn = t.Name;
-			RequiredSize = nab.SizeRequirement;
-			fn = nab.Name != null ? nab.Name : t.Name;
+			RequiredSize = nab == null ? 0 : nab.SizeRequirement;
+			fn = (nab != null && nab.Name != null) ? nab.Name : t.Name;
 			uint len = (uint)System.Text.Encoding.UTF8.GetBytes(fn, 0, fn.Length, data, 0);
 			ObjectId = MurmurHash3.Hash(data, len, 19850922);
 
-			factory = Expression.Lambda<Func<System.Object>>(
-				Expression.New(t.GetConstructor(Type.EmptyTypes))
-			).Compile();
+			if(t.IsClass)
+            {
+				factory = Expression.Lambda<Func<System.Object>>(
+					Expression.New(t.GetConstructor(Type.EmptyTypes))
+				).Compile();
+            }
+            else
+			{
+				factory = () => Activator.CreateInstance(t);
+			}
 
 			foreach(PropertyInfo prop in props)
 			{
@@ -112,7 +119,7 @@ namespace Detekonai.Networking.Serializer
 			return null;
 		}
 
-		private IPropertySerializer FindSerializer(Type ownerType, Type type, Delegate getterDelegate, Delegate setterDelegate, INetworkSerializerFactory serFactory) 
+		private IPropertySerializer FindSerializer(Type ownerType, Type type, Delegate getterDelegate, Delegate setterDelegate, DefaultSerializerFactory serFactory) 
 		{
 			if(type == typeof(object))
             {

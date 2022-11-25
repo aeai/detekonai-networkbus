@@ -4,6 +4,7 @@ using Detekonai.Networking.Runtime;
 using Detekonai.Networking.Runtime.AsyncEvent;
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Detekonai.Networking
 {
@@ -11,15 +12,15 @@ namespace Detekonai.Networking
 	{
 		public interface IMessageRequestTicket
         {
-			void Fulfill(NetworkMessage msg);
+			Task Fulfill(NetworkMessage msg);
 		}
 
 		string Name { get; }
 		ICommChannel Channel { get; set; }
 		bool Active { get; }
 		ILogger LogConnector { get; set; }
-		UniversalAwaitable<BaseMessage> SendRPC(NetworkMessage msg);
-		UniversalAwaitable<BaseMessage> SendRPC(NetworkMessage msg, CancellationToken token);
+		Task<BaseMessage> SendRPC(NetworkMessage msg);
+		Task<BaseMessage> SendRPC(NetworkMessage msg, CancellationToken token);
 		void SetRequestHandler<T>(Action<T, IMessageRequestTicket> handler) where T : NetworkMessage;
 	}
 }

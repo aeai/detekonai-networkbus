@@ -14,8 +14,8 @@ namespace Detekonai.Networking.Serializer.Experimental
         private readonly Dictionary<Type, INetworkSerializer> serializers = new Dictionary<Type, INetworkSerializer>();
         private readonly Dictionary<uint, INetworkSerializer> serializersByHash = new Dictionary<uint, INetworkSerializer>();
         public ILogger Logger { get; set; }
-
-		public INetworkSerializer Get(uint id)
+        public IEnumerable<INetworkSerializer> Serializers => serializers.Values;
+        public INetworkSerializer Get(uint id)
         {
             serializersByHash.TryGetValue(id, out INetworkSerializer res);
             return res;

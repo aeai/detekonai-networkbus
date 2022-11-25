@@ -68,6 +68,7 @@ namespace Detekonai.Networking.Serializer
 			RegisterSimpleConverter(blob.AddShort, blob.ReadShort);
 			RegisterSimpleConverter(blob.AddUShort, blob.ReadUShort);
 			RegisterSimpleConverter(blob.AddSingle, blob.ReadSingle);
+			RegisterSimpleConverter(blob.AddBoolean, blob.ReadBoolean);
 			RegisterListConverter(blob.AddString, blob.ReadString);
 			RegisterListConverter(blob.AddInt, blob.ReadInt);
 			RegisterListConverter(blob.AddUInt, blob.ReadUInt);

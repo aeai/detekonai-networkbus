@@ -1,5 +1,6 @@
 ﻿using Detekonai.Core;
 using System;
+using System.Collections.Generic;
 
 namespace Detekonai.Networking
 {
@@ -7,6 +8,6 @@ namespace Detekonai.Networking
 	{
 		INetworkSerializer Get(Type type);
 		INetworkSerializer Get(uint id);
-		INetworkSerializer Build(Type type);
+		IEnumerable<INetworkSerializer> Serializers { get; }
 	}
 }

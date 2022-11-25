@@ -9,21 +9,22 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Tasks;
 using static Detekonai.Core.Common.ILogger;
 
 namespace Detekonai.Networking
 {
 	public sealed class NetworkBus : INetworkBus
 	{
-		private IMessageBus bus;
-		private Dictionary<Type, IHandlerToken> tokens = new Dictionary<Type, IHandlerToken>();
-		private Dictionary<Type, INetworkSerializer> serializers = new Dictionary<Type, INetworkSerializer>();
-		private Dictionary<uint, INetworkSerializer> serializersByHash = new Dictionary<uint, INetworkSerializer>();
+		private readonly IMessageBus bus;
+        private readonly INetworkSerializerFactory factory;
+        private Dictionary<Type, IHandlerToken> tokens = new Dictionary<Type, IHandlerToken>();
 		private readonly Dictionary<Type, Action<BaseMessage, MessageRequestTicket>> responseDelegates = new Dictionary<Type, Action<BaseMessage, MessageRequestTicket>>();
 
 		private ICommChannel channel;
 
 		public string Name { get; private set; }
+		public int MaximumAllowedBlobSerializationDelay { get; set; } = -1;
         public ICommChannel Channel { 
 			get
 			{
@@ -53,7 +54,8 @@ namespace Detekonai.Networking
 		{
 			Name = name;
 			this.bus = bus;
-			RegisterMessages(factory);
+            this.factory = factory;
+            RegisterMessages(factory);
 		}
 
         public class MessageRequestTicket : INetworkBus.IMessageRequestTicket
@@ -67,69 +69,26 @@ namespace Detekonai.Networking
                 this.originalTicket = originalTicket;
             }
 
-            public void Fulfill(NetworkMessage msg)
+            public async Task Fulfill(NetworkMessage msg)
             {
-				originalTicket.Fulfill(bus.Serialize(msg));
+				originalTicket.Fulfill(await bus.Serialize(msg));
             }
         }
 
-        private struct MessageAwaiter : IUniversalAwaiter<BaseMessage>
+        public async Task<BaseMessage> SendRPC(NetworkMessage msg)
         {
-            private readonly NetworkBus owner;
-            private readonly IUniversalAwaiter<ICommResponse> other;
-
-			public bool IsCompleted => other.IsCompleted;
-
-            public bool IsInitialized => other.IsInitialized;
-
-			private BaseMessage result;
-
-			public MessageAwaiter(NetworkBus owner, IUniversalAwaiter<ICommResponse> other)
-            {
-                this.owner = owner;
-                this.other = other;
-				result = null;
-            }
-
-			public void Cancel()
-            {
-				other.Cancel();
-            }
-
-            public BaseMessage GetResult()
-            {
-				if (result == null)
-				{
-					using ICommResponse res = other.GetResult();
-					if (res.Status == AwaitResponseStatus.Finished)
-					{
-						result = owner.Deserialize(res.Blob);
-					}
-				}
-
-				return result;
-            }
-
-            public void OnCompleted(Action continuation)
-            {
-				other.OnCompleted(continuation);
-            }
+			return await SendRPC(msg, CancellationToken.None);
         }
 
-        public UniversalAwaitable<BaseMessage> SendRPC(NetworkMessage msg)
+		public async Task<BaseMessage> SendRPC(NetworkMessage msg, CancellationToken token)
         {
-			return SendRPC(msg, CancellationToken.None);
-        }
-
-		public UniversalAwaitable<BaseMessage> SendRPC(NetworkMessage msg, CancellationToken token)
-        {
-			UniversalAwaitable<ICommResponse> res = null;
-			BinaryBlob blob = Serialize(msg);
+			ICommResponse res = null;
+			BinaryBlob blob = await Serialize(msg);
 			try
             {
-				res = channel.SendRPC(blob, token);
-				return new UniversalAwaitable<BaseMessage>(new MessageAwaiter(this, res.GetAwaiter()));
-            }
+				res = await channel.SendRPC(blob, token);
+				return Deserialize(res.Blob);
+			}
 			finally
             {
 				if(res == null)
@@ -202,7 +161,8 @@ namespace Detekonai.Networking
 		private NetworkMessage Deserialize(BinaryBlob blob)
 		{
 			uint hash = blob.ReadUInt();
-			if (serializersByHash.TryGetValue(hash, out INetworkSerializer ser))
+			INetworkSerializer ser = factory.Get(hash);
+			if (ser != null)
 			{
 
 				NetworkMessage msg = (NetworkMessage)ser.Deserialize(blob);
@@ -220,27 +180,12 @@ namespace Detekonai.Networking
 
 		private void RegisterMessages(INetworkSerializerFactory factory)
 		{
-			var types = AppDomain.CurrentDomain.GetAssemblies().Where(x => !IsOmittable(x)).SelectMany(s => s.GetTypes()).Where(p => p.GetCustomAttribute<NetworkSerializableAttribute>() != null && !p.IsAbstract);
-			foreach(Type t in types)
+			foreach(INetworkSerializer ser in factory.Serializers)
 			{
-				if (t.IsSubclassOf(typeof(NetworkMessage)))
+				if (ser.SerializedType.IsSubclassOf(typeof(NetworkMessage)))
 				{
-					LogConnector?.Log(this, $"Message {t} is registered to NetworkBus {Name}.");
-					tokens[t] = bus.Subscribe(t, OnLocalMessage);
-				}
-				else
-                {
-					LogConnector?.Log(this, $"Type {t} is registered to NetworkBus {Name} for serialization.");
-                }
-				INetworkSerializer ser = factory.Build(t);
-				if(ser != null)
-                {
-					serializers[t] = ser;
-					serializersByHash[ser.ObjectId] = ser;
-                }
-				else
-                {
-					LogConnector?.Log(this, $"Type {t} don't have a serializer!!", LogLevel.Error);
+					LogConnector?.Log(this, $"Message {ser.SerializedType} is registered to NetworkBus {Name}.");
+					tokens[ser.SerializedType] = bus.Subscribe(ser.SerializedType, OnLocalMessage);
 				}
 			}
 		}
@@ -255,12 +200,12 @@ namespace Detekonai.Networking
 			tokens.Clear();
 		}
 
-		private void OnLocalMessage(BaseMessage msg)
+		private async void OnLocalMessage(BaseMessage msg)
 		{
 			if(Active && msg is NetworkMessage nmsg && nmsg.Local)
 			{
 				LogConnector?.Log(this, $"{Name} Dispatching message {msg.GetType()} to network");
-				BinaryBlob blob = Serialize(msg as NetworkMessage);
+				BinaryBlob blob = await Serialize(msg as NetworkMessage);
 				if(blob != null)
 				{
 					channel.Send(blob);
@@ -268,28 +213,25 @@ namespace Detekonai.Networking
 			}
 		}
 
-		private BinaryBlob Serialize(NetworkMessage msg)
+		private async Task<BinaryBlob> Serialize(NetworkMessage msg)
         {
-			if (serializers.TryGetValue(msg.GetType(), out INetworkSerializer ser))
+			INetworkSerializer ser = factory.Get(msg.GetType());
+			if (ser != null)
 			{
-				BinaryBlob blob = channel.CreateMessageWithSize(ser.RequiredSize);
+				CancellationToken ct = CancellationToken.None;
+				if (MaximumAllowedBlobSerializationDelay != -1)
+                {
+					CancellationTokenSource cts = new CancellationTokenSource();
+					cts.CancelAfter(MaximumAllowedBlobSerializationDelay);
+					ct = cts.Token;
+                }
+
+				BinaryBlob blob = await channel.CreateMessageWithSizeAsync(ct, ser.RequiredSize);
 				blob.AddUInt(ser.ObjectId);
 				ser.Serialize(blob, msg);
 				return blob;
 			}
 			return null;
-		}
-
-		private static bool IsOmittable(Assembly assembly)
-		{
-			string assemblyName = assembly.GetName().Name;
-			return StartsWith("System") ||
-				StartsWith("Microsoft") ||
-				StartsWith("Windows") ||
-				StartsWith("Unity") ||
-				StartsWith("netstandard");
-
-			bool StartsWith(string value) => assemblyName.StartsWith(value, ignoreCase: false, culture: CultureInfo.CurrentCulture);
 		}
 
 		public void Disconnect()

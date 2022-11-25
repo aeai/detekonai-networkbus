@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Detekonai.Networking.Serializer.Experimental
 {
     public class CompositeNetworkSerializerFactory : INetworkSerializerFactory
     {
         private readonly List<INetworkSerializerFactory> factories = new List<INetworkSerializerFactory>();
+
+        public IEnumerable<INetworkSerializer> Serializers => factories.SelectMany(x => x.Serializers).Distinct();
 
         public CompositeNetworkSerializerFactory(params INetworkSerializerFactory[] factories)
         {
@@ -15,19 +18,6 @@ namespace Detekonai.Networking.Serializer.Experimental
         {
             this.factories.AddRange(factories);
             return this;
-        }
-
-        public INetworkSerializer Build(Type type)
-        {
-            foreach (var factory in factories)
-            {
-                var res = factory.Build(type);
-                if (res != null)
-                {
-                    return res;
-                }
-            }
-            return null;
         }
 
         public INetworkSerializer Get(Type type)
