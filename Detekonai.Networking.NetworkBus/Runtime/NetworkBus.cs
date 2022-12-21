@@ -20,7 +20,8 @@ namespace Detekonai.Networking
         private readonly INetworkSerializerFactory factory;
         private Dictionary<Type, IHandlerToken> tokens = new Dictionary<Type, IHandlerToken>();
 		private readonly Dictionary<Type, Action<BaseMessage, MessageRequestTicket>> responseDelegates = new Dictionary<Type, Action<BaseMessage, MessageRequestTicket>>();
-
+		private readonly HashSet<Type> incommingBlacklist = new HashSet<Type>();
+		private readonly HashSet<Type> outgoingBlacklist = new HashSet<Type>();
 		private ICommChannel channel;
 
 		public string Name { get; private set; }
@@ -58,7 +59,16 @@ namespace Detekonai.Networking
             RegisterMessages(factory);
 		}
 
-        public class MessageRequestTicket : INetworkBus.IMessageRequestTicket
+		public void AddToIncommingBlacklist<T>() where T : NetworkMessage
+        {
+			incommingBlacklist.Add(typeof(T));
+        }
+		public void AddToOutgoingBlacklist<T>() where T : NetworkMessage
+        {
+			outgoingBlacklist.Add(typeof(T));
+		}
+
+		public class MessageRequestTicket : INetworkBus.IMessageRequestTicket
         {
             private readonly NetworkBus bus;
             private readonly IRequestTicket originalTicket;
@@ -120,7 +130,11 @@ namespace Detekonai.Networking
 
 			if (msg != null)
 			{
-				if(responseDelegates.TryGetValue(msg.GetType(), out Action<BaseMessage, MessageRequestTicket> callback))
+				if(incommingBlacklist.Contains(msg.GetType()))
+                {
+					LogConnector?.Log(this, $"Network message {msg.GetType()} is blacklisted, we will not process it!", LogLevel.Error);
+				}
+				else if(responseDelegates.TryGetValue(msg.GetType(), out Action<BaseMessage, MessageRequestTicket> callback))
 				{
 					callback(msg, new MessageRequestTicket(this,ticket));
 				}
@@ -148,7 +162,11 @@ namespace Detekonai.Networking
 			NetworkMessage msg = Deserialize(e);
 			if(msg != null)
 			{
-				if(tokens.TryGetValue(msg.GetType(), out IHandlerToken token))
+				if (incommingBlacklist.Contains(msg.GetType()))
+				{
+					LogConnector?.Log(this, $"Network message {msg.GetType()} is blacklisted, we will not process it!", LogLevel.Error);
+				}
+				else if (tokens.TryGetValue(msg.GetType(), out IHandlerToken token))
 				{
 					LogConnector?.Log(this, $"{Name} Dispatching message {msg.GetType()} to memory bus");
 					token.Trigger(msg);
@@ -204,7 +222,7 @@ namespace Detekonai.Networking
 
 		private async void OnLocalMessage(BaseMessage msg)
 		{
-			if(Active && msg is NetworkMessage nmsg && nmsg.Local)
+			if(Active && msg is NetworkMessage nmsg && nmsg.Local && !outgoingBlacklist.Contains(msg.GetType()))
 			{
 				LogConnector?.Log(this, $"{Name} Dispatching message {msg.GetType()} to network");
 				BinaryBlob blob = await Serialize(msg as NetworkMessage);

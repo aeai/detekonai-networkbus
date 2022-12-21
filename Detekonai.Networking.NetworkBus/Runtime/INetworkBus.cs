@@ -22,5 +22,8 @@ namespace Detekonai.Networking
 		Task<BaseMessage> SendRPC(NetworkMessage msg);
 		Task<BaseMessage> SendRPC(NetworkMessage msg, CancellationToken token);
 		void SetRequestHandler<T>(Action<T, IMessageRequestTicket> handler) where T : NetworkMessage;
+
+		void AddToIncommingBlacklist<T>() where T : NetworkMessage;
+		void AddToOutgoingBlacklist<T>() where T : NetworkMessage;
 	}
 }
