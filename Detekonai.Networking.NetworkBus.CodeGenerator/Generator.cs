@@ -200,7 +200,7 @@ namespace Detekonai.Networking.CodeGenerator
 			");
 			foreach (var targetClass in inheritanceList)
 			{
-				foreach (var symbol in targetClass.GetMembers().Where(x => x.Kind == SymbolKind.Property && x.GetAttributes().Any(y => y.AttributeClass!.ToDisplayString() == "Detekonai.Networking.NetworkSerializablePropertyAttribute")))
+				foreach (var symbol in targetClass.GetMembers().Where(x => x.Kind == SymbolKind.Property && x.GetAttributes().Any(y => y.AttributeClass!.ToDisplayString() == "Detekonai.Networking.NetworkSerializablePropertyAttribute")).OrderBy(x => x.Name))
 				{
 					var prop = (IPropertySymbol)symbol;
 	
@@ -216,7 +216,7 @@ namespace Detekonai.Networking.CodeGenerator
 			");
 			foreach (var targetClass in inheritanceList)
 			{
-				foreach (var symbol in targetClass.GetMembers().Where(x => x.Kind == SymbolKind.Property && x.GetAttributes().Any(y => y.AttributeClass!.ToDisplayString() == "Detekonai.Networking.NetworkSerializablePropertyAttribute")))
+				foreach (var symbol in targetClass.GetMembers().Where(x => x.Kind == SymbolKind.Property && x.GetAttributes().Any(y => y.AttributeClass!.ToDisplayString() == "Detekonai.Networking.NetworkSerializablePropertyAttribute")).OrderBy(x => x.Name))
 				{
 					var prop = (IPropertySymbol)symbol;
 					SerializeProperty(sb, prop, finder);
